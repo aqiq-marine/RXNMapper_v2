@@ -206,14 +206,33 @@ class BondAtoms:
             editable_mol.AddBond(hydrogens_to_bond_idx[0], hydrogens_to_bond_idx[1], Chem.BondType.SINGLE)
             cyclic_mol = editable_mol.GetMol()
             return Chem.RemoveHs(cyclic_mol)
+
+    @staticmethod
+    def atom_map_molecule(mol:rdkit.Chem.rdchem.Mol)->rdkit.Chem.rdchem.Mol:
+        """Assigns unique atom map numbers to each atom."""
+        for i, atom in enumerate(mol.GetAtoms()):
+            atom.SetAtomMapNum(i + 1)  # Map numbers start at 1
+        return mol
     
+    def get_mapped_smile_from_mol(self, mol:rdkit):
+        try:
+            mapped_mol = self.atom_map_molecule(mol)
+            return Chem.MolToSmiles(mapped_mol)
+        except:
+            return ''
+    
+    def get_mapped_smile_from_mol_list(self):
+        with ThreadPoolExecutor() as executor:
+            results = list(executor.map(self.get_mapped_smile_from_mol, self.mol_list))
+        return results
+
     def build_df(self):
         '''
         build a df of each original smiles together with all the different atom indices
         '''
         rows = [
-        {"SMILES": smiles, "index_atoms": ind if ind else None}
-        for smiles, sets in zip(self.smiles_list, self.atoms_indices)
+        {"SMILES": smiles, "MAPPED SMILES": mapped_smiles, "index_atoms": ind if ind else None}
+        for smiles, mapped_smiles, sets in zip(self.smiles_list, self.get_mapped_smile_from_mol_list(), self.atoms_indices)
         for ind in (sets or [None])
         ]
         df = pd.DataFrame(rows)
@@ -222,6 +241,11 @@ class BondAtoms:
     def apply_cyclization(self, row):
         mol = Chem.MolFromSmiles(row['SMILES'])
         return self.cyclization_mol(mol, row['index_atoms'])
+
+    def apply_cyclization_on_map(self, row):
+        mol = Chem.MolFromSmiles(row['MAPPED SMILES'])
+        mapped_mol = self.atom_map_molecule(mol)
+        return self.cyclization_mol(mapped_mol, row['index_atoms'])
     
     def apply_mol_to_smiles(self, mol):
         try:
@@ -231,9 +255,23 @@ class BondAtoms:
         
     
     def get_df_cyclized_mols(self):
+        print('build dataframe structure..')
         df = self.build_df()
+        print('dataframe structure ready.')
+
+        print('starting cyclic mols obtention..')
         df['cycled_product'] = df.apply(self.apply_cyclization, axis=1)
+
+        print('cyclic mols obtained, converting to smiles..')
         df['cycled_product'] = df['cycled_product'].apply(self.apply_mol_to_smiles)
+
+        print('starting mapped cyclic mols obtention..')
+        df['mapped_cycled_product'] = df.apply(self.apply_cyclization_on_map, axis=1)
+
+        print('mapped cyclic mols obtained, converting to smiles..')
+        df['mapped_cycled_product'] = df['mapped_cycled_product'].apply(self.apply_mol_to_smiles)
+
+        print('dataframe fully ready')
         return df
     
     @staticmethod
@@ -241,11 +279,19 @@ class BondAtoms:
         return reactant_series + ">>" + product_series
     
     def get_df_cyclized_mols_with_reaction(self, df):
+        print('preparing reactions..')
         df['reaction'] = self.build_reaction_series(df['SMILES'], df['cycled_product'])
+
+        print('preparing mapped reactions..')
+        df['mapped_reaction'] = self.build_reaction_series(df['MAPPED SMILES'], df['mapped_cycled_product'])
+
+        print('finished reactions')
         return df
     
     def create_and_save_cyclization_df(self, filename:str='df_cyclized_mols.csv'):
         df = self.get_df_cyclized_mols()
+        print('Adding reactions to dataframe')
         df = self.get_df_cyclized_mols_with_reaction(df)
+        print('saving dataframe..')
         DataHandler(df, f'{self.outputs_path}{filename}')._save_to_csv()
         return df
