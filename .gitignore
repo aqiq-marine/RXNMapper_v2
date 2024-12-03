@@ -1,0 +1,11 @@
+# Ignore large data files
+rxnmapper/data/RXNMapperData/USPTO_remapped/*.tsv
+rxnmapper/data/RXNMapperData/Training/uspto_all_reactions_training.txt
+
+# Ignore other unnecessary files (adjust as needed)
+*.log
+*.pyc
+__pycache__/
+rxnmapper_from_scratch/
+rxnmapper/data/RXNMapperData/Training/uspto_all_reactions_training.txt
+rxnmapper/data/RXNMapperData/USPTO_remapped
