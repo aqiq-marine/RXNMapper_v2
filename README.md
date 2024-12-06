@@ -11,16 +11,6 @@ Enable robust atom mapping on valid reaction SMILES. The atom-mapping informatio
 
 ## Installation
 
-### From pip
-```console
-conda create -n rxnmapper_v2 python=3.8 -y
-conda activate rxnmapper_v2
-pip install -e .
-pip install rdkit
-pip install transformers[torch]
-pip install wandb
-```
-
 ### From github
 You can install the package and setup the environment directly from github using:
 
@@ -29,19 +19,15 @@ git clone https://github.com/yvsgrndjn/RXNMapper_v2
 cd RXNMapper_v2
 conda create -n rxnmapper_v2 python=3.8 -y
 conda activate rxnmapper_v2
-pip install rxnmapper_v2
-pip install rdkit
-pip install transformers[torch]
-pip install wandb
+pip install -e .
 ```
-
 
 ## Usage
 
 ### Basic usage
 
 ```python
-from rxnmapper_v2 import RXNMapper
+from rxnmapper import RXNMapper
 rxn_mapper = RXNMapper()
 rxns = ['CC(C)S.CN(C)C=O.Fc1cccnc1F.O=C([O-])[O-].[K+].[K+]>>CC(C)Sc1ncccc1F', 'C1COCCO1.CC(C)(C)OC(=O)CONC(=O)NCc1cccc2ccccc12.Cl>>O=C(O)CONC(=O)NCc1cccc2ccccc12']
 results = rxn_mapper.get_attention_guided_atom_maps(rxns)
@@ -58,7 +44,7 @@ The results contain the mapped reactions and confidence scores:
 
 To account for batching and error handling automatically, you can use `BatchedMapper` instead:
 ```python
-from rxnmapper_v2 import BatchedMapper
+from rxnmapper import BatchedMapper
 rxn_mapper = BatchedMapper(batch_size=32)
 rxns = ['CC[O-]~[Na+].BrCC>>CCOCC', 'invalid>>reaction']
 
@@ -74,7 +60,68 @@ To learn more see the [examples](./examples).
 
 ## Data 
 
-Data can be found at: https://ibm.box.com/v/RXNMapperData
+1. Data can be found at: https://ibm.box.com/v/RXNMapperData
+2. Download the files and place them in the data-directory
+3. Unzip the zip file: 
+
+```bash
+cd data
+unzip RXNMapperData.zip
+rm RXNMapperData.zip
+```
+
+4. Process the data: 
+
+```bash
+python process_data.py
+```
+
+
+## Validating the model:
+
+The current validation algorithm does not account for equivalent carbons. This still needs to be implemented :). 
+
+1. Run RXNMapper on the validation data: 
+
+```bash
+mkdir results
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset.json
+```
+
+2. Run Validation of results: 
+
+```bash
+python scripts/validation_script.py --ground_truth_path data/RXNMapperData/Validation/eval_schneider_processed.json --prediction_path results/v1_baseline_validation_dataset.json
+```
+
+## Training a model: 
+
+1. Once the training data has been processed, Simply run: 
+
+```bash
+python scripts/train_mlm_alberta.py
+```
+
+
+
+# Extra Experiments: 
+
+## Looking into 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Citation
 

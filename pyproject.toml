@@ -18,6 +18,7 @@ module = [
     "datasets.*",
     "matplotlib.*",
     "ipykernel.*",
+    "datasets.*",
 ]
 ignore_missing_imports = true
 

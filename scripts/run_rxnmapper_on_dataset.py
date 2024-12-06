@@ -3,11 +3,20 @@ import logging
 import click
 import pandas as pd
 from rxn.utilities.containers import chunker
+from rdkit import Chem
 from tqdm import tqdm
+import yaml
+
 
 from rxnmapper import RXNMapper
 
 logger = logging.getLogger(__name__)
+
+
+def parse_config(config_path):
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+    return config
 
 
 @click.command()
@@ -27,12 +36,14 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--detailed", "-d", default=False, is_flag=True, help="Return detailed output"
 )
+@click.option("--config_path", "-c", default=None, help="Path to config file")
 def main(
     file_path: str,
     output_path: str,
     batch_size: int,
     canonicalize: bool,
     detailed: bool,
+    config_path: str,
 ) -> None:
     df: pd.DataFrame
     if file_path.endswith(".json"):
@@ -45,19 +56,30 @@ def main(
         ValueError("Unrecognized file type")
     df.reset_index(inplace=True)
 
-    rxn_mapper = RXNMapper()
+    config = None
+
+    # parse config if not none:
+    if config_path:
+        config = parse_config(config_path)
+
+    rxn_mapper = RXNMapper(config=config)
 
     results = []
     rxns = df["rxn"].tolist()
 
     number_batches = (len(rxns) - 1) // batch_size + 1
     for rxns_chunk in tqdm(chunker(rxns, chunk_size=batch_size), total=number_batches):
+
         results += rxn_mapper.get_attention_guided_atom_maps(
-            rxns_chunk, canonicalize_rxns=canonicalize, detailed_output=detailed
+            rxns_chunk,
+            canonicalize_rxns=canonicalize,
+            detailed_output=detailed,
         )
 
     results_df = pd.DataFrame(results)
     results_df.to_json(output_path)
+
+    print(f"Results saved to {output_path}")
 
 
 if __name__ == "__main__":

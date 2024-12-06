@@ -124,7 +124,6 @@ examples/data.xlsx
 # custom folders
 docs_source/_build/
 docs_source/_modules/
-notebooks/ 
 
 .vscode
 _archive
@@ -143,4 +142,8 @@ rxnmapper/data/RXNMapperData/Training/uspto_all_reactions_training.txt
 rxnmapper/data/RXNMapperData/USPTO_remapped
 
 
-testin_notebook
+Finetuning_attn_head_experiments
+wandb
+trained_models
+
+data/*

@@ -12,8 +12,8 @@ def tokenize_function(examples):
 
 
 # Tokenizer setup
-vocab_path = "data/vocab.txt"
-max_length = 512  # Maximum sequence length for debugging
+vocab_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+max_length = 512
 
 # TODO: Fix the tokenizer so that it just truncates SMILES Strings which are too large:
 tokenizer = SmilesTokenizer(
@@ -26,8 +26,9 @@ tokenizer = SmilesTokenizer(
 
 
 # Dataset setup
-# dataset_path = "/home/sacharfd/RXNMapper_2/data/uspto_all_reactions_training.csv"
-dataset_path = "data/uspto_all_reactions_training_511.csv"
+dataset_path = (
+    "data/RXNMapperData/Training/uspto_all_reactions_training_less_than_510.csv"
+)
 dataset = load_dataset(
     "csv",
     data_files=dataset_path,
@@ -57,7 +58,7 @@ data_collator = DataCollatorForLanguageModeling(
 
 # Training arguments setup
 training_args = TrainingArguments(
-    output_dir="trained_models/alberta_all_rxn_512_limit_save_every_100_steps_for_double_decent_4_big_lr",
+    output_dir="trained_models/alberta_all_rxn_512",
     learning_rate=5e-4,
     max_steps=1_500_000,
     weight_decay=0.001,
@@ -71,10 +72,9 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=4,
     logging_dir="logs",
     logging_first_step=True,
-    report_to="wandb",
-    run_name="alberta_all_rxn",
+    report_to=["none"],  # "wandb",
+    # run_name="alberta_all_rxn",
 )
-
 
 # Trainer setup
 trainer = Trainer(

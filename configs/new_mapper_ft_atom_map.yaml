@@ -1,0 +1,5 @@
+model_path: "/home/sacharfd/RXNMapper_2/rxnmapper/models/transformers/final_checkpoint_atom_map_ft_val_ignore_index"
+model_type: "albert"
+attention_multiplier: 90.0
+head: 6
+layers: [10]
