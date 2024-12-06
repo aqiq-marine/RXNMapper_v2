@@ -3,9 +3,9 @@ import logging
 import click
 import pandas as pd
 from rxn.utilities.containers import chunker
-from rdkit import Chem
 from tqdm import tqdm
 import yaml
+import os
 
 
 from rxnmapper import RXNMapper
@@ -54,6 +54,12 @@ def main(
         df = pd.read_csv(file_path)
     else:
         ValueError("Unrecognized file type")
+
+    # Get parent directory of output path
+    output_dir = os.path.dirname(output_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     df.reset_index(inplace=True)
 
     config = None

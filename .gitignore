@@ -146,4 +146,7 @@ Finetuning_attn_head_experiments
 wandb
 trained_models
 
-data/*
+misc
+*.csv
+data/*.json
+data/RXNMapperData

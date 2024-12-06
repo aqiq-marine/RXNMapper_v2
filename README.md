@@ -68,12 +68,13 @@ To learn more see the [examples](./examples).
 cd data
 unzip RXNMapperData.zip
 rm RXNMapperData.zip
+cd ..
 ```
 
 4. Process the data: 
 
 ```bash
-python process_data.py
+python scripts/process_data.py
 ```
 
 
@@ -84,15 +85,20 @@ The current validation algorithm does not account for equivalent carbons. This s
 1. Run RXNMapper on the validation data: 
 
 ```bash
-mkdir results
 python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset.json
 ```
+
+<!-- 1.2 Run RXNMapper on a trained/ft model: 
+
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_1000_cyclisations_ft.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset_after_cyclisation_ft.json -->
 
 2. Run Validation of results: 
 
 ```bash
 python scripts/validation_script.py --ground_truth_path data/RXNMapperData/Validation/eval_schneider_processed.json --prediction_path results/v1_baseline_validation_dataset.json
 ```
+
+2.2 
 
 ## Training a model: 
 
@@ -106,16 +112,15 @@ python scripts/train_mlm_alberta.py
 
 # Extra Experiments: 
 
-## Looking into 
+
+## Finetuning for atom mapping: 
 
 
+## Future experiments: 
 
-
-
-
-
-
-
+1. Run with randomised smiles
+2. Run with Extra cyclisation and rearrangement reactions
+3. Extra stuff. 
 
 
 
