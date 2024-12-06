@@ -1,51 +1,47 @@
-# Extraction of organic chemistry grammar from unsupervised learning of chemical reactions
-Enable robust atom mapping on valid reaction SMILES. The atom-mapping information was learned by an ALBERT model trained in an unsupervised fashion on a large dataset of chemical reactions.
+# Adaptation of Extraction of organic chemistry grammar from unsupervised learning of chemical reactions - Round 2 :) 
 
-- [Extraction of organic chemistry grammar from unsupervised learning of chemical reactions](https://advances.sciencemag.org/content/7/15/eabe4166): peer-reviewed Science Advances publication (open access).
-- [Demo](http://rxnmapper.ai/demo.html): give RXNMapper a try! 
-- [Unsupervised attention-guided atom-mapping preprint](http://dx.doi.org/10.26434/chemrxiv.12298559): presented at the ML Interpretability for Scientific Discovery ICML workshop, 2020.
+Enable robust atom mapping on valid reaction SMILES. The atom-mapping information was learned by an ALBERT model trained in an unsupervised fashion on a large dataset of chemical reactions - Second round :) 
+
+## What this version includes: 
+  1. Training scripts
+  2. Evaluation Scripts
+  3. New Datasets :) 
+  4. And other experiments. 
+
 
 ## Installation
 
 ### From pip
 ```console
-conda create -n rxnmapper python=3.6 -y
-conda activate rxnmapper
-pip install rxnmapper
+conda create -n rxnmapper_v2 python=3.8 -y
+conda activate rxnmapper_v2
+pip install -e .
+pip install rdkit
+pip install transformers[torch]
+pip install wandb
 ```
 
 ### From github
 You can install the package and setup the environment directly from github using:
 
 ```console
-git clone https://github.com/rxn4chemistry/rxnmapper.git 
-cd rxnmapper
-conda create -n rxnmapper python=3.6 -y
-conda activate rxnmapper
-pip install -e .
-```
-
-### RDkit
-
-In both installation settings above, the `RDKit` dependency is not installed automatically, unless you include the extra when installing: `pip install "rxmapper[rdkit]"`.
-It can also be installed via Conda or Pypi:
-
-```bash
-# Install RDKit from Conda
-conda install -c conda-forge rdkit
-
-# Install RDKit from Pypi
+git clone https://github.com/yvsgrndjn/RXNMapper_v2 
+cd RXNMapper_v2
+conda create -n rxnmapper_v2 python=3.8 -y
+conda activate rxnmapper_v2
+pip install rxnmapper_v2
 pip install rdkit
-# for Python<3.7
-# pip install rdkit-pypi
+pip install transformers[torch]
+pip install wandb
 ```
+
 
 ## Usage
 
 ### Basic usage
 
 ```python
-from rxnmapper import RXNMapper
+from rxnmapper_v2 import RXNMapper
 rxn_mapper = RXNMapper()
 rxns = ['CC(C)S.CN(C)C=O.Fc1cccnc1F.O=C([O-])[O-].[K+].[K+]>>CC(C)Sc1ncccc1F', 'C1COCCO1.CC(C)(C)OC(=O)CONC(=O)NCc1cccc2ccccc12.Cl>>O=C(O)CONC(=O)NCc1cccc2ccccc12']
 results = rxn_mapper.get_attention_guided_atom_maps(rxns)
@@ -62,7 +58,7 @@ The results contain the mapped reactions and confidence scores:
 
 To account for batching and error handling automatically, you can use `BatchedMapper` instead:
 ```python
-from rxnmapper import BatchedMapper
+from rxnmapper_v2 import BatchedMapper
 rxn_mapper = BatchedMapper(batch_size=32)
 rxns = ['CC[O-]~[Na+].BrCC>>CCOCC', 'invalid>>reaction']
 
@@ -71,13 +67,6 @@ rxns = ['CC[O-]~[Na+].BrCC>>CCOCC', 'invalid>>reaction']
 results = list(rxn_mapper.map_reactions(rxns))  # results as strings directly
 results = list(rxn_mapper.map_reactions_with_info(rxns))  # results as dictionaries (as above)
 ```
-
-### Testing
-
-You can run the examples above with the test suite as well:
-
-1. In your Conda environment: `pip install -e .[dev]`
-2. `pytest tests` from the root 
 
 ## Examples
 
