@@ -2,10 +2,6 @@
 
 Script to process data downloaded from IBM Dropbox. 
 
-
-Steps: 
-
-
 """
 
 import pandas as pd
