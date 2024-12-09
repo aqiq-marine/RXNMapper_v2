@@ -15,6 +15,10 @@ module = [
     "scipy.*",
     "tqdm.*",
     "transformers.*",
+    "datasets.*",
+    "matplotlib.*",
+    "ipykernel.*",
+    "datasets.*",
 ]
 ignore_missing_imports = true
 

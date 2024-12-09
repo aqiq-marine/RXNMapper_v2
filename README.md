@@ -1,43 +1,25 @@
-# Extraction of organic chemistry grammar from unsupervised learning of chemical reactions
-Enable robust atom mapping on valid reaction SMILES. The atom-mapping information was learned by an ALBERT model trained in an unsupervised fashion on a large dataset of chemical reactions.
+# Adaptation of Extraction of organic chemistry grammar from unsupervised learning of chemical reactions - Round 2 :) 
 
-- [Extraction of organic chemistry grammar from unsupervised learning of chemical reactions](https://advances.sciencemag.org/content/7/15/eabe4166): peer-reviewed Science Advances publication (open access).
-- [Demo](http://rxnmapper.ai/demo.html): give RXNMapper a try! 
-- [Unsupervised attention-guided atom-mapping preprint](http://dx.doi.org/10.26434/chemrxiv.12298559): presented at the ML Interpretability for Scientific Discovery ICML workshop, 2020.
+Enable robust atom mapping on valid reaction SMILES. The atom-mapping information was learned by an ALBERT model trained in an unsupervised fashion on a large dataset of chemical reactions - Second round :) 
+
+## What this version includes: 
+  1. Training scripts
+  2. Evaluation Scripts
+  3. New Datasets :) 
+  4. And other experiments. 
+
 
 ## Installation
-
-### From pip
-```console
-conda create -n rxnmapper python=3.6 -y
-conda activate rxnmapper
-pip install rxnmapper
-```
 
 ### From github
 You can install the package and setup the environment directly from github using:
 
 ```console
-git clone https://github.com/rxn4chemistry/rxnmapper.git 
-cd rxnmapper
-conda create -n rxnmapper python=3.6 -y
-conda activate rxnmapper
+git clone https://github.com/yvsgrndjn/RXNMapper_v2 
+cd RXNMapper_v2
+conda create -n rxnmapper_v2 python=3.8 -y
+conda activate rxnmapper_v2
 pip install -e .
-```
-
-### RDkit
-
-In both installation settings above, the `RDKit` dependency is not installed automatically, unless you include the extra when installing: `pip install "rxmapper[rdkit]"`.
-It can also be installed via Conda or Pypi:
-
-```bash
-# Install RDKit from Conda
-conda install -c conda-forge rdkit
-
-# Install RDKit from Pypi
-pip install rdkit
-# for Python<3.7
-# pip install rdkit-pypi
 ```
 
 ## Usage
@@ -72,20 +54,79 @@ results = list(rxn_mapper.map_reactions(rxns))  # results as strings directly
 results = list(rxn_mapper.map_reactions_with_info(rxns))  # results as dictionaries (as above)
 ```
 
-### Testing
-
-You can run the examples above with the test suite as well:
-
-1. In your Conda environment: `pip install -e .[dev]`
-2. `pytest tests` from the root 
-
 ## Examples
 
 To learn more see the [examples](./examples).
 
 ## Data 
 
-Data can be found at: https://ibm.box.com/v/RXNMapperData
+1. Data can be found at: https://ibm.box.com/v/RXNMapperData
+2. Download the files and place them in the data-directory
+3. Unzip the zip file: 
+
+```bash
+cd data
+unzip RXNMapperData.zip
+rm RXNMapperData.zip
+cd ..
+```
+
+4. Process the data: 
+
+```bash
+python scripts/process_data.py
+```
+
+
+## Validating the model:
+
+The current validation algorithm does not account for equivalent carbons. This still needs to be implemented :). 
+
+1. Run RXNMapper on the validation data: 
+
+```bash
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset.json
+```
+
+<!-- 1.2 Run RXNMapper on a trained/ft model: 
+
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_1000_cyclisations_ft.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset_after_cyclisation_ft.json -->
+
+2. Run Validation of results: 
+
+```bash
+python scripts/validation_script.py --ground_truth_path data/RXNMapperData/Validation/eval_schneider_processed.json --prediction_path results/v1_baseline_validation_dataset.json
+```
+
+2.2 
+
+## Training a model: 
+
+1. Once the training data has been processed, Simply run: 
+
+```bash
+python scripts/train_mlm_alberta.py
+```
+
+
+
+# Extra Experiments: 
+
+
+## Finetuning for atom mapping: 
+
+
+## Future experiments: 
+
+1. Run with randomised smiles
+2. Run with Extra cyclisation and rearrangement reactions
+3. Extra stuff. 
+
+
+
+
+
+
 
 ## Citation
 

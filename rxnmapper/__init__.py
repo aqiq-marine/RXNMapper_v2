@@ -1,6 +1,6 @@
 """rxnmapper initialization."""
 
-__name__ = "rxnmapper"
+__name__ = "rxnmapper_v2"
 __version__ = "0.4.0"  # managed by bump2version
 
 
