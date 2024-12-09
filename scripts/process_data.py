@@ -173,6 +173,9 @@ def process_cyclisation_data(cyclisation_data_path, model_size=512):
         lambda x: x.replace("[H][H].", "")
     )
 
+    # Drop duplicates in reaction:
+    cyclisation_data.drop_duplicates(subset="reaction", inplace=True, keep="first")
+
     # Tokenize the SMILES strings:
     rxns_tokenised = [smi_tokenizer(rxn) for rxn in tqdm(cyclisation_data.reaction)]
 
@@ -219,6 +222,11 @@ def process_rearrangement_data(rearrangement_data_path, model_size=512):
     assert (
         hh_count == 0
     ), "Some explicit hydrogen products are still present in the rearrangement data. - Code should be adapted."
+
+    # Drop duplicates in reaction:
+    rearrangement_data.drop_duplicates(
+        subset=["UNMAPPED REACTION"], inplace=True, keep="first"
+    )
 
     # Tokenize the SMILES strings:
     rxns_tokenised = [
