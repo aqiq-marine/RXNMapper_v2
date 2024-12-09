@@ -14,10 +14,12 @@ class Config:
     Dataclass for configuration parameters
     """
 
-    # Paths:
-    alberta_config_path: str
+    # Basic params:
     dataset_name: str
     checkpoint_path: str
+
+    # Model config:
+    alberta_config: dict
 
     # Atom mapping parameters:
     model_path: str

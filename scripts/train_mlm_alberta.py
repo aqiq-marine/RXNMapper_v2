@@ -9,9 +9,7 @@ Takes as input:
 
 Example run of training: 
 
-python scripts/train_mlm_alberta.py -c configs/training.yaml
-
-
+python scripts/train_mlm_alberta.py -c configs/training_baseline.yaml
 """
 
 from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments
@@ -33,8 +31,9 @@ from rxnmapper.training_utils import parse_config
 def main(config_path: str):
 
     config = parse_config(config_path)
+
     # Setup model:
-    model_config = AlbertConfig.from_pretrained(config.alberta_config_path)
+    model_config = AlbertConfig(**config.alberta_config)
     model = AlbertForMaskedLM(model_config)
 
     # Can stay hard coded for now:
@@ -61,7 +60,6 @@ def main(config_path: str):
         dataset_path = (
             "data/RXNMapperData/Training/uspto_all_reactions_training_less_than_510.csv"
         )
-
     else:
         raise ValueError(f"{config.dataset_name} Dataset not supported Yet")
 
