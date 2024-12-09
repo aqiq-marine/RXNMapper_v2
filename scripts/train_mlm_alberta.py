@@ -52,9 +52,19 @@ def main(config_path: str):
 
     # Dataset setup
     if config.dataset_name == "USPTO":
-        dataset_path = "data/RXNMapperData/Training/uspto_all_reactions_training.csv"
+        dataset_path = f"data/RXNMapperData/Training/uspto_all_reactions_{model_config.max_position_embeddings}_max_input_len.csv"
+    elif config.dataset_name == "full_pretraining":
+        dataset_path = "data/full_pretraining_data.csv"
+    elif config.dataset_name == "uspto_cyclisation":
+        dataset_path = "data/uspto_cyclisation_pretraining_data.csv"
+    elif config.dataset_name == "uspto_rearrangement":
+        dataset_path = "data/uspto_rearrangement_pretraining_data.csv"
+    elif config.dataset_name == "cyclisation_only":
+        dataset_path = "data/Cyclisation/processed/train.csv"
+    elif config.dataset_name == "rearrangement_only":
+        dataset_path = "data/Rearrangement/processed/train.csv"
     else:
-        raise ValueError(f"{config.dataset_name} Dataset not supported Yet")
+        raise ValueError(f"{config.dataset_name} Dataset not supported yet")
 
     print(f"Loading the {config.dataset_name} dataset...")
     dataset = load_dataset(
@@ -71,12 +81,11 @@ def main(config_path: str):
     )
 
     # Load model from checkpoint:
-    checkpoint_path = None
     if config.checkpoint_path:
         print(f"Loading model from checkpoint: {config.checkpoint_path}")
-        model = AlbertForMaskedLM.from_pretrained(checkpoint_path)
+        model = AlbertForMaskedLM.from_pretrained(config.checkpoint_path)
 
-    # Data collator for MLM, using a mask probability of 15%
+    # Setup the MLM Data collator - This automatically masks tokens within the data-loader
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
         mlm=True,
@@ -114,11 +123,10 @@ def main(config_path: str):
     # Train the model
     trainer.train()
 
-    # Save the model
+    # Save the model:
     trainer.save_model(config.output_dir)
     print(f"Model saved to {config.output_dir}")
 
 
 if __name__ == "__main__":
     main()
-    pass

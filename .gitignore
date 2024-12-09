@@ -150,3 +150,4 @@ misc
 *.csv
 data/*.json
 data/RXNMapperData
+processed

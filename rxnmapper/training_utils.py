@@ -55,6 +55,9 @@ class Config:
 
 
 def parse_config(config_path):
+    """
+    Parse the configuration file and return a Config object
+    """
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     return Config(**config)

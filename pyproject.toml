@@ -19,6 +19,7 @@ module = [
     "matplotlib.*",
     "ipykernel.*",
     "datasets.*",
+    "scikit-learn.*",
 ]
 ignore_missing_imports = true
 

@@ -73,6 +73,11 @@ cd ..
 
 4. Process the data: 
 
+- This will clean the USPTO data (Only keep rxns within the model size)
+- Split Cyclisation data
+- Split Rearrangement data
+- Combine all the training data into one big pre-training dataset. 
+
 ```bash
 python scripts/process_data.py
 ```
