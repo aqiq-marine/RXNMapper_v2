@@ -1,7 +1,9 @@
 import os
 import sys
 import rdkit
+import numpy as np
 import pandas as pd
+from itertools import product
 from rdkit import Chem
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
@@ -9,6 +11,8 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 sys.path.append('../')
+from src.rdkit_utils import *
+from src.reaction_series_utils import *
 from src.data_handler import DataHandler
 
 class AtomsToBond:
@@ -295,3 +299,144 @@ class BondAtoms:
         print('saving dataframe..')
         DataHandler(df, f'{self.outputs_path}{filename}')._save_to_csv()
         return df
+
+
+
+
+class SimpleRearrangement():
+    '''
+    Class creating fictive rearrangement reactions for a list of molecules. For any given molecule, will take every
+    bond A-B (with A and B non H atoms) and every R-H bond (with R a non H atom) and create a fictive rearrangement
+    reaction where we will obtain A-H and R-B.
+    '''
+    def __init__(self, 
+        mol_list:list[rdkit.Chem.rdchem.Mol],  
+        smiles_list:list[str],
+        outputs_path:str='', 
+        ):
+        self.mol_list=mol_list
+        self.smiles_list = smiles_list
+        self.mapped_smiles_list = get_mapped_smile_from_mol_list(self.mol_list)
+        self.molH_list = add_Hs_to_mol_list(self.mol_list)
+        self.ncpus = os.cpu_count()-2
+        self.bonds_indices = self.get_all_bonds_indices_of_mol_list(self.mol_list)
+
+        if outputs_path == '':
+            self.outputs_path='../results/rearrangement/'
+        else:
+            self.outputs_path=outputs_path
+
+        if os.path.exists(self.outputs_path) == False:
+            os.makedirs(self.outputs_path)  
+    
+    @staticmethod
+    def are_elements_from_tuples_all_diff(t1:tuple[int,int], t2:tuple[int,int])->bool:
+        """
+        Check if all elements from two tuples are different.
+        
+        Parameters:
+        - t1: Tuple of two integers.
+        - t2: Tuple of two integers.
+        
+        Returns:
+        - bool: True if all elements are different, False otherwise.
+        """
+        return len(set(list(t1)).intersection(set(list(t2)))) == 0
+
+    def build_all_indices_combinations_for_rearrangement(self, list1:list[tuple[int,int]], list2:list[tuple[int,int]])->list[list[tuple[int,int], tuple[int,int]]]:
+        valid_combinations = [
+            [t1, t2] for t1, t2 in product(list1, list2)
+            if self.are_elements_from_tuples_all_diff(t1, t2)
+        ]
+        return valid_combinations
+
+    def get_all_bonds_indices_of_mol(self, mol:rdkit.Chem.rdchem.Mol)->list[tuple[int,int]]:
+        non_H_bonds_indices = get_non_H_bonds_indices(mol)
+        R_H_bonds_indices = get_R_H_bonds_indices(mol)
+        return self.build_all_indices_combinations_for_rearrangement(non_H_bonds_indices, R_H_bonds_indices)
+
+    def get_all_bonds_indices_of_mol_list(self, mol_list):
+        with ThreadPoolExecutor(max_workers=self.ncpus) as executor:
+            results = list(executor.map(self.get_all_bonds_indices_of_mol, mol_list))
+        return results
+    
+    def build_df(self):
+        smiles_list_expanded        = np.repeat(self.smiles_list, [len(sublist) for sublist in self.bonds_indices])
+        mapped_smiles_list_expanded = np.repeat(self.mapped_smiles_list, [len(sublist) for sublist in self.bonds_indices])
+        map_mol_list_expanded       = np.repeat(self.molH_list, [len(sublist) for sublist in self.bonds_indices])
+        all_bonds_indices_expanded  = [item for sublist in self.bonds_indices for item in sublist]
+
+        # Create the DataFrame
+        df = pd.DataFrame({
+            'SMILES': smiles_list_expanded,
+            'MAPPED SMILES': mapped_smiles_list_expanded,
+            'MAPPED MOL': map_mol_list_expanded,
+            'INDICES': all_bonds_indices_expanded
+        })
+        return df
+    
+    @staticmethod
+    def rearrangement_mol(mol:rdkit.Chem.rdchem.Mol, index_bonds:list[tuple[int, int]])->rdkit.Chem.rdchem.Mol:
+        """
+        Rearranges the molecule by breaking two bonds and forming two new bonds.
+        
+        Parameters:
+        - mol: RDKit molecule object.
+        - index_bonds: List of two tuples, each containing the indices of two atoms.
+        
+        Returns:
+        - mol: RDKit molecule object after rearrangement.
+        """
+
+        AB_bond = list(index_bonds[0])
+        RH_bond = list(index_bonds[1])
+        mol = Chem.AddHs(mol)
+        editable_mol = Chem.EditableMol(mol)
+        editable_mol.RemoveBond(AB_bond[0], AB_bond[1])
+        editable_mol.RemoveBond(RH_bond[0], RH_bond[1])
+        
+        editable_mol.AddBond(AB_bond[0], RH_bond[0], order=Chem.rdchem.BondType.SINGLE)
+        editable_mol.AddBond(AB_bond[1], RH_bond[1], order=Chem.rdchem.BondType.SINGLE)
+        rearr_mol = editable_mol.GetMol()
+        
+        return Chem.RemoveHs(rearr_mol) 
+       
+    def apply_rearrangement_on_map_mol(self, row):
+        if are_atoms_not_neigbors(row['INDICES'][0], row['INDICES'][1], row['MAPPED MOL']) and not is_there_aromatic_atom(row['INDICES'][0], row['INDICES'][1], row['MAPPED MOL']):
+            return self.rearrangement_mol(row['MAPPED MOL'], row['INDICES'])
+        else:
+            return ''
+
+
+
+    def process(self):
+
+        print('building dataframe...')
+        df = self.build_df()
+
+        print('applying rearrangement on mapped molecules...')
+        df['REARR MAPPED PROD'] = df.apply(self.apply_rearrangement_on_map_mol, axis=1)
+
+        print('converting rearranged mapped molecules to smiles...')
+        df['REARR MAPPED PROD'] = df['REARR MAPPED PROD'].apply(apply_mol_to_smiles)
+
+        print('remove rows with empty rearranged product...')
+        ind_to_keep = get_ind_non_empty_elements(df['REARR MAPPED PROD'])
+        df = df.loc[ind_to_keep]
+        df.reset_index(drop=True, inplace=True)
+
+        print('adding mapped reactions to dataframe...')
+        df['MAPPED REACTION'] = build_reaction_series(df['MAPPED SMILES'], df['REARR MAPPED PROD'])
+
+        print('add unmapped reactions to dataframe...')
+        df['UNMAPPED SMILES'] = get_unmapped_smiles_list(df['MAPPED SMILES'])
+        df['UNMAPPED PROD'] = get_unmapped_smiles_list(df['REARR MAPPED PROD'])
+        df['UNMAPPED REACTION'] = build_reaction_series(df['UNMAPPED SMILES'], df['UNMAPPED PROD'])        
+        
+        print('removing unnecessary columns...')
+        df.drop(columns=['MAPPED SMILES', 'MAPPED MOL', 'REARR MAPPED PROD', 'UNMAPPED SMILES', 'UNMAPPED PROD'], inplace=True)
+
+        print('saving dataframe...')
+        DataHandler(df, f'{self.outputs_path}df_rearrangement_test.csv')._save_to_csv()
+        return df
+
