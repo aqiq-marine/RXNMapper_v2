@@ -23,16 +23,7 @@ class SmilesTokenizer(BertTokenizer):
         vocab_file: Path to a SMILES character per line vocabulary file
     """
 
-    def __init__(
-        self,
-        vocab_file,
-        # unk_token="[UNK]",
-        # sep_token="[SEP]",
-        # pad_token="[PAD]",
-        # cls_token="[CLS]",
-        # mask_token="[MASK]",
-        **kwargs
-    ):
+    def __init__(self, vocab_file, **kwargs):
         """Constructs a BertTokenizer.
 
         Args:

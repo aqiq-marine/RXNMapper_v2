@@ -36,30 +36,23 @@ def main(config_path: str):
     model_config = AlbertConfig(**config.alberta_config)
     model = AlbertForMaskedLM(model_config)
 
-    # Can stay hard coded for now:
-    vocab_path = (
-        "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
-    )
-
-    # TODO: Fix the tokenizer so that it just truncates SMILES Strings which are too large:
+    # Setup tokenizer:
+    vocab_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"  # Can stay hard coded for now
     tokenizer = SmilesTokenizer(
         vocab_path,
-        max_length=model_config.max_position_embeddings,
-        truncation=True,
+        model_max_length=model_config.max_position_embeddings,
         padding="longest",
     )
 
     # Tokenize the dataset with truncation logic
     def tokenize_function(examples):
         # Tokenize the SMILES strings
-        tokenized = tokenizer(examples["rxn"])
+        tokenized = tokenizer(examples["rxn"], truncation=True)
         return tokenized
 
     # Dataset setup
     if config.dataset_name == "USPTO":
-        dataset_path = (
-            "data/RXNMapperData/Training/uspto_all_reactions_training_less_than_510.csv"
-        )
+        dataset_path = "data/RXNMapperData/Training/uspto_all_reactions_training.csv"
     else:
         raise ValueError(f"{config.dataset_name} Dataset not supported Yet")
 

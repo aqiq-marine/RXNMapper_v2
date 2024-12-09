@@ -28,9 +28,7 @@ def smi_tokenizer(smi):
 def main():
 
     tain_data_path = "data/RXNMapperData/Training/uspto_all_reactions_training.txt"
-    save_path = (
-        "data/RXNMapperData/Training/uspto_all_reactions_training_less_than_510.csv"
-    )
+    save_path = "data/RXNMapperData/Training/uspto_all_reactions_training.csv"
     assert os.path.exists(tain_data_path), f"Path {tain_data_path} does not exist."
 
     data = pd.read_csv(tain_data_path)
@@ -46,7 +44,7 @@ def main():
     print(f"Max tokenised length in the training Set: {max_len:,}")
 
     # Only keep samples with a tokenised length less than 510 (Accounting for the [CLS] and [SEP] tokens)
-    theshold_len = 510
+    theshold_len = 2_048
     valid_rxns = []
 
     for rxn in rxns_tokenised:
