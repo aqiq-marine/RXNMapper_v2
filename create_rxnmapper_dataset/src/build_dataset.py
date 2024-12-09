@@ -296,6 +296,7 @@ class BondAtoms:
         df = self.get_df_cyclized_mols()
         print('Adding reactions to dataframe')
         df = self.get_df_cyclized_mols_with_reaction(df)
+        df = df[df['cycled_product'] != '']
         print('saving dataframe..')
         DataHandler(df, f'{self.outputs_path}{filename}')._save_to_csv()
         return df
