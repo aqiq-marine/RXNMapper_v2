@@ -172,6 +172,12 @@ def process_cyclisation_data(cyclisation_data_path, model_size=512):
     cyclisation_data["reaction"] = cyclisation_data["reaction"].apply(
         lambda x: x.replace("[H][H].", "")
     )
+    cyclisation_data["mapped_reaction"] = cyclisation_data["mapped_reaction"].apply(
+        lambda x: x.replace(".[H][H]", "")
+    )
+    cyclisation_data["mapped_reaction"] = cyclisation_data["mapped_reaction"].apply(
+        lambda x: x.replace("[H][H].", "")
+    )
 
     # Drop duplicates in reaction:
     cyclisation_data.drop_duplicates(subset="reaction", inplace=True, keep="first")
