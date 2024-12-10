@@ -1,7 +1,0 @@
-rxnmapper
-=========
-
-.. toctree::
-   :maxdepth: 4
-
-   rxnmapper
