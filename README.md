@@ -95,7 +95,9 @@ python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_basel
 
 <!-- 1.2 Run RXNMapper on a trained/ft model: 
 
-python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_1000_cyclisations_ft.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset_after_cyclisation_ft.json -->
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/training_baseline_full_pt.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v2_baseline_validation_dataset.json
+
+ -->
 
 2. Run Validation of results: 
 
@@ -103,14 +105,14 @@ python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_
 python scripts/validation_script.py --ground_truth_path data/RXNMapperData/Validation/eval_schneider_processed.json --prediction_path results/v1_baseline_validation_dataset.json
 ```
 
-<!-- 2.2  -->
+<!--   -->
 
 ## Training a model: 
 
 1. Once the training data has been processed, Simply run: 
 
 ```bash
-python scripts/train_mlm_alberta.py -c configs/training.yaml
+python scripts/train_mlm_alberta.py -c configs/training_baseline_full_pt.yaml
 ```
 
 

@@ -90,7 +90,10 @@ class RXNMapper:
             attn_implementation="eager",
         )
 
-        vocab_path = None
+        # Use the Vocab from V1 model:
+        vocab_path = (
+            "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+        )
 
         if os.path.exists(os.path.join(self.model_path, "vocab.txt")):
             vocab_path = os.path.join(self.model_path, "vocab.txt")

@@ -3,6 +3,3 @@ model_type: "albert"
 attention_multiplier: 90.0
 head: 5
 layers: [10]
-
-
-#  python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path /home/sacharfd/RXNMapper_2/data/Cyclisation/cyclisation_cleaned_no_h_dataset_mapped.json -o results/v1_baseline_whole_cyclisation_no_h_baseline.json
