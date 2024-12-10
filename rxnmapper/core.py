@@ -99,7 +99,8 @@ class RXNMapper:
             vocab_path = os.path.join(self.model_path, "vocab.txt")
 
         tokenizer = SmilesTokenizer(
-            vocab_path, max_len=model.config.max_position_embeddings
+            vocab_path,
+            max_len=model.config.max_position_embeddings,
         )
         return (model, tokenizer)
 

@@ -151,3 +151,4 @@ misc
 data/*.json
 data/RXNMapperData
 processed
+results/

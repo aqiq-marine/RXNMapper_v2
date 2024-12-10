@@ -3,6 +3,7 @@ from rxnmapper.smiles_utils import process_reaction_with_product_maps_atoms
 from tqdm import tqdm
 import os
 import click
+import pandas as pd
 
 
 def load_json(path):
@@ -78,17 +79,29 @@ def main(
 
     assert os.path.exists(ground_truth_path), f"Path {ground_truth_path} does not exist"
     assert os.path.exists(prediction_path), f"Path {prediction_path} does not exist"
-    assert ground_truth_path.endswith(".json"), "Ground truth path must be a json file"
-    assert prediction_path.endswith(".json"), "Prediction path must be a json file"
+    # assert ground_truth_path.endswith(".json"), "Ground truth path must be a json file"
+    # assert prediction_path.endswith(".json"), "Prediction path must be a json file"
 
     # Load the data:
-    gt_data = load_json(ground_truth_path)
+    if ground_truth_path.endswith(".json"):
+        gt_data = load_json(ground_truth_path)
+        assert (
+            "rxn_atom_mapped" in gt_data.keys()
+        ), "Ground truth data must have atom maps"
+        gt_rxns = list(gt_data["rxn_atom_mapped"].values())
+
+    elif ground_truth_path.endswith(".csv"):
+        gt_data = pd.read_csv(ground_truth_path)
+        # print(gt_data.columns.to_list())
+        assert (
+            "rxn_atom_mapped" in gt_data.columns
+        ), "Ground truth data must have atom maps"
+        gt_rxns = gt_data["rxn_atom_mapped"].tolist()
+
     predicted_data = load_json(prediction_path)
 
-    assert "rxn_atom_mapped" in gt_data.keys(), "Ground truth data must have atom maps"
     assert "mapped_rxn" in predicted_data.keys(), "Predicted data must have atom maps"
 
-    gt_rxns = list(gt_data["rxn_atom_mapped"].values())
     predicted_rxns = list(predicted_data["mapped_rxn"].values())
 
     assert len(gt_rxns) == len(
