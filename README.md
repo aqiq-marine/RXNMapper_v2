@@ -99,11 +99,10 @@ Or to run on the cyclisation/Rearangement datasets:
 python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/Cyclisation/processed/test.csv -o results/v1_baseline_cyclisation_test_dataset.json
 ```
 
-<!-- 1.2 Run RXNMapper on a trained/ft model: 
+```bash
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/Rearrangement/processed/test.csv -o results/v1_baseline_rearrangement_test_dataset.json
+```
 
-python scripts/run_rxnmapper_on_dataset.py --config_path configs/training_baseline_full_pt.yaml --file_path data/Cyclisation/processed/test.csv -o results/v2_baseline_cyclisation_test_dataset.json
-
- -->
 
 2. Run Validation of results: 
 
@@ -116,11 +115,10 @@ Or to run on the cyclisation/Rearangement datasets:
 ```bash
 python scripts/validation_script.py --ground_truth_path data/Cyclisation/processed/test.csv --prediction_path results/v1_baseline_cyclisation_test_dataset.json
 ```
+```bash
+python scripts/validation_script.py --ground_truth_path data/Rearrangement/processed/test.csv --prediction_path results/v1_baseline_rearrangement_test_dataset.json
+```
 
-
-<!--  python scripts/validation_script.py --ground_truth_path data/Cyclisation/processed/test.csv --prediction_path results/v2_baseline_cyclisation_test_dataset.json
-
- -->
 
 ## Training a model: 
 

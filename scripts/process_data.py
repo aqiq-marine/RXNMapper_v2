@@ -28,6 +28,7 @@ import re
 from tqdm import tqdm
 import os
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 
 def smi_tokenizer(smi):
@@ -61,6 +62,22 @@ def split_data(
     return train, val, test
 
 
+def split_data_train_test(
+    data,
+    train_size=0.6,
+):
+    """
+    1. Split the data into train/val/test sets
+    """
+    train, test = train_test_split(
+        data,
+        train_size=train_size,
+        random_state=42,
+    )
+
+    return train, test
+
+
 def save_splits(train, val, test, data_path):
     """
     Save the processed data to a new directory.
@@ -70,6 +87,18 @@ def save_splits(train, val, test, data_path):
     os.makedirs(save_dir, exist_ok=True)
     train.to_csv(os.path.join(save_dir, "train.csv"), index=False)
     val.to_csv(os.path.join(save_dir, "val.csv"), index=False)
+    test.to_csv(os.path.join(save_dir, "test.csv"), index=False)
+    print(f"Processed data saved to {save_dir}")
+
+
+def save_splits_train_test(train, test, data_path):
+    """
+    Save the processed data to a new directory.
+    """
+    save_dir = os.path.dirname(data_path)
+    save_dir = os.path.join(save_dir, "processed_50-50_train_test")
+    os.makedirs(save_dir, exist_ok=True)
+    train.to_csv(os.path.join(save_dir, "train.csv"), index=False)
     test.to_csv(os.path.join(save_dir, "test.csv"), index=False)
     print(f"Processed data saved to {save_dir}")
 
@@ -104,6 +133,25 @@ def process_uspto_data(train_data_path, save_path, model_size=512):
     rxns = data["rxn"].tolist()
     print("Tokenising SMILES strings...")
     rxns_tokenised = [smi_tokenizer(rxn) for rxn in tqdm(rxns)]
+
+    # sizes = {}
+
+    # for rxn in rxns_tokenised:
+    #     size = len(rxn.split())
+    #     if size in sizes:
+    #         sizes[size] += 1
+    #     else:
+    #         sizes[size] = 1
+
+    # # Plot the distribution of tokenised lengths:
+    # plt.bar(sizes.keys(), sizes.values())
+    # plt.xlabel("Tokenised Length")
+    # plt.ylabel("Frequency")
+    # plt.title("Tokenised Length Distribution")
+    # plt.show()
+
+    # # Save the plot:
+    # plt.savefig("data/USPTO_tokenised_length_distribution.png")
 
     max_len = max([len(rxn.split()) for rxn in rxns_tokenised])
     print(f"\nMax tokenised length in the training Set: {max_len:,}")
@@ -145,7 +193,9 @@ def process_validation_data(val_data_path):
     print(f"Processed validation data saved to {val_data_save_path}")
 
 
-def process_cyclisation_data(cyclisation_data_path, model_size=512):
+def process_cyclisation_data(
+    cyclisation_data_path, model_size=512, split_into_train_test=True
+):
     """
     1. Load the cyclisation data
     2. Tokenize the SMILES strings
@@ -185,6 +235,28 @@ def process_cyclisation_data(cyclisation_data_path, model_size=512):
     # Tokenize the SMILES strings:
     rxns_tokenised = [smi_tokenizer(rxn) for rxn in tqdm(cyclisation_data.reaction)]
 
+    # sizes = {}
+
+    # for rxn in rxns_tokenised:
+    #     size = len(rxn.split())
+    #     if size in sizes:
+    #         sizes[size] += 1
+    #     else:
+    #         sizes[size] = 1
+
+    # # Plot the distribution of tokenised lengths:
+    # plt.bar(sizes.keys(), sizes.values())
+    # plt.xlabel("Tokenised Length")
+    # plt.ylabel("Frequency")
+    # plt.title("Tokenised Length Distribution")
+    # plt.show()
+
+    # # Save the plot:
+    # plt.savefig("data/Cyclisation/processed/tokenised_length_distribution.png")
+
+    # print(sizes)
+    # exit()
+
     max_len = max([len(rxn.split()) for rxn in rxns_tokenised])
     print(f"\nMax tokenised length in the Cyclisation Set: {max_len:,}")
 
@@ -198,17 +270,27 @@ def process_cyclisation_data(cyclisation_data_path, model_size=512):
     )
 
     # Split into train/val/test sets: 10/10/80:
-    train, val, test = split_data(cyclisation_data, train_size=0.1)
 
-    print("Cyclisation Splits:")
-    print(f"Train size: {len(train):,}")
-    print(f"Val size: {len(val):,}")
-    print(f"Test size: {len(test):,}")
+    if split_into_train_test:
+        train, test = split_data_train_test(cyclisation_data, train_size=0.5)
+        print("Cyclisation Splits:")
+        print(f"Train size: {len(train):,}")
+        print(f"Test size: {len(test):,}")
+        save_splits_train_test(train, test, cyclisation_data_path)
 
-    save_splits(train, val, test, cyclisation_data_path)
+    else:
+
+        train, val, test = split_data(cyclisation_data, train_size=0.1)
+        print("Cyclisation Splits:")
+        print(f"Train size: {len(train):,}")
+        print(f"Val size: {len(val):,}")
+        print(f"Test size: {len(test):,}")
+        save_splits(train, val, test, cyclisation_data_path)
 
 
-def process_rearrangement_data(rearrangement_data_path, model_size=512):
+def process_rearrangement_data(
+    rearrangement_data_path, model_size=512, split_into_train_test=True
+):
     """
     1. Load the rearrangement data
     2. Tokenize the SMILES strings
@@ -252,14 +334,21 @@ def process_rearrangement_data(rearrangement_data_path, model_size=512):
     )
 
     # Split into train/val/test sets: 10/10/80:
-    train, val, test = split_data(rearrangement_data, train_size=0.1)
+    if split_into_train_test:
+        train, test = split_data_train_test(rearrangement_data, train_size=0.5)
+        print("Rearrangement Splits:")
+        print(f"Train size: {len(train):,}")
+        print(f"Test size: {len(test):,}")
+        save_splits_train_test(train, test, rearrangement_data_path)
 
-    print("Rearrangement Splits:")
-    print(f"Train size: {len(train):,}")
-    print(f"Val size: {len(val):,}")
-    print(f"Test size: {len(test):,}")
+    else:
 
-    save_splits(train, val, test, rearrangement_data_path)
+        train, val, test = split_data(rearrangement_data, train_size=0.1)
+        print("Rearrangement Splits:")
+        print(f"Train size: {len(train):,}")
+        print(f"Val size: {len(val):,}")
+        print(f"Test size: {len(test):,}")
+        save_splits(train, val, test, rearrangement_data_path)
 
 
 # Create a new pretraining_dataset which includes the USPTO, Cyclisation and Rearrangement data.

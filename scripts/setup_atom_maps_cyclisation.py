@@ -323,10 +323,15 @@ def main(path_to_data_csv):
     data.to_json(save_path)
     print("Data saved to:", save_path)
 
+    # Also save as csv:
+    save_path_csv = os.path.join(base_dir, "cleaned_data_with_attention_maps.csv")
+    data.to_csv(save_path_csv)
+    print("Data saved to:", save_path_csv)
+
 
 if __name__ == "__main__":
     print("Setting up the atom maps for the cyclisation dataset")
 
-    path_to_data_to_atom_map = "data/Cyclisation/clean_no_h/cleaned_data.csv"
+    path_to_data_to_atom_map = "data/Cyclisation/processed/train.csv"
 
     main(path_to_data_csv=path_to_data_to_atom_map)

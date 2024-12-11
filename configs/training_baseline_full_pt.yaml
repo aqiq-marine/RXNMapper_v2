@@ -61,7 +61,7 @@ alberta_config: {
 
 
 # Atom mapping parameters: 
-model_path: "trained_models/alberta_full_pretraining/checkpoint-573000"
+model_path: "trained_models/alberta_full_pretraining/checkpoint-695000"
 model_type: "albert"
 attention_multiplier: 90.0
 head: 3
