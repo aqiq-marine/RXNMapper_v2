@@ -1,5 +1,8 @@
 import json
-from rxnmapper.smiles_utils import process_reaction_with_product_maps_atoms
+from rxnmapper.smiles_utils import (
+    process_reaction_with_product_maps_atoms,
+    generate_atom_mapped_reaction_atoms,
+)
 from tqdm import tqdm
 import os
 import click
@@ -14,6 +17,19 @@ def load_json(path):
     with open(path, "r") as f:
         data = json.load(f)
     return data
+
+
+def create_rxn_smiles_from_rxn_equation(rxn_equation):
+    """
+    Create a reaction SMILES from a reaction equation.
+    """
+    reactants = rxn_equation.reactants
+    products = rxn_equation.products
+    reactants = ".".join(reactants)
+    products = ".".join(products)
+    return f"{reactants}>>{products}"
+
+    # return f"{reactants[0]}>>{products[0]}"
 
 
 def main_no_maps(gt_rxns, predicted_rxns):
@@ -33,7 +49,21 @@ def main_no_maps(gt_rxns, predicted_rxns):
         try:
             rxn_can = process_reaction_with_product_maps_atoms(rxn)
             predicted_rxn_can = process_reaction_with_product_maps_atoms(predicted_rxn)
-            if rxn_can[1] == predicted_rxn_can[1]:  # Only check the atom maps
+
+            # Convert to true atom map with canonicalisation:
+            rxn_can, _ = generate_atom_mapped_reaction_atoms(
+                *rxn_can,
+                canonical=True,
+            )
+            predicted_rxn_can, _ = generate_atom_mapped_reaction_atoms(
+                *predicted_rxn_can,
+                canonical=True,
+            )
+
+            rxn_can = create_rxn_smiles_from_rxn_equation(rxn_can)
+            predicted_rxn_can = create_rxn_smiles_from_rxn_equation(predicted_rxn_can)
+
+            if rxn_can == predicted_rxn_can:  # Only check the atom maps
                 correct_count += 1
             else:
                 wrong_count += 1
