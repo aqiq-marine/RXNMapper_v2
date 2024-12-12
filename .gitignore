@@ -157,7 +157,6 @@ results/
 
 
 scripts/train_mlm_and_atom_map_xent.py
-scripts/finetune_model_with_atom_map_xent.py
 
 experiments/
 alberta_full_pt_728000

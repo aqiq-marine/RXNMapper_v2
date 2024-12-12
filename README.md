@@ -130,17 +130,61 @@ python scripts/train_mlm_alberta.py -c configs/training_baseline_full_pt.yaml
 
 
 
-# Extra Experiments: 
+<!-- # Extra Experiments:  -->
 
 
-## Finetuning for atom mapping: 
+<!-- ## Finetuning for atom mapping:  -->
 
+
+# Current Benchmarks on 50/50 Split Cyclisation + Rearrangement Datasets:
+
+## Cyclisation data: 50/50 Split:
+
+Test Size - Samples: 13,665
+
+RXNmapper V1 - No finetuning: 
+
+- 93.5%
+
+RXNMapper V1 + MLM finetuning on Cyclisation-only Data (13,665 samples) :
+
+- 96.5%
+
+RXNMapper V1 + Atom-map Finetuning (13,665 samples):
+
+- 96.5%
+
+
+## Rearrangement data: 50/50 Split
+
+Test Size -  samples: 57,783
+
+RXNMapper V1 - No finetuning:
+
+- 82.9%
+
+RXNMapper V1 + MLM finetuning on Rearrangement-only Data (57,783):
+
+- 92.1%
+
+
+# Current ISSUES: 
+
+- Processing of Atom maps has BUG for the Rearrangement RXNs - TO FIX
+- Would like to see WHERE the atom map is wrong - Is it on the reacting atoms or scattered across reaction.
+- Finetuning with Atom Maps script is very basic - Need to optimise the Trainer class: 
+    - Still takes as input a MLM dataset, although no loss is calculated on it :)
+    - Generates a new dataloader at every forward pass - Clearly not optimal and SLOW
+    - No validation set.
+- Clean code so easily reproducible
+
+<!-- 
 
 ## Future experiments: 
 
 1. Run with randomised smiles
 2. Run with Extra cyclisation and rearrangement reactions
-3. Extra stuff. 
+3. Extra stuff.  -->
 
 
 
