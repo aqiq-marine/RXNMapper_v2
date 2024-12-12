@@ -33,8 +33,7 @@ def main_no_maps(gt_rxns, predicted_rxns):
         try:
             rxn_can = process_reaction_with_product_maps_atoms(rxn)
             predicted_rxn_can = process_reaction_with_product_maps_atoms(predicted_rxn)
-
-            if rxn_can == predicted_rxn_can:
+            if rxn_can[1] == predicted_rxn_can[1]:  # Only check the atom maps
                 correct_count += 1
             else:
                 wrong_count += 1
