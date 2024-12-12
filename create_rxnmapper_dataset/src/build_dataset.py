@@ -410,7 +410,7 @@ class SimpleRearrangement():
 
 
 
-    def process(self):
+    def process(self, filename= 'df_rearrangement_test.csv'):
 
         print('building dataframe...')
         df = self.build_df()
@@ -438,6 +438,6 @@ class SimpleRearrangement():
         df.drop(columns=['MAPPED SMILES', 'MAPPED MOL', 'REARR MAPPED PROD', 'UNMAPPED SMILES', 'UNMAPPED PROD'], inplace=True)
 
         print('saving dataframe...')
-        DataHandler(df, f'{self.outputs_path}df_rearrangement_test.csv')._save_to_csv()
+        DataHandler(df, f'{self.outputs_path}{filename}')._save_to_csv()
         return df
 
