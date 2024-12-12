@@ -93,9 +93,16 @@ The current validation algorithm does not account for equivalent carbons. This s
 python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset.json
 ```
 
-<!-- 1.2 Run RXNMapper on a trained/ft model: 
+Or to run on the cyclisation/Rearangement datasets: 
 
-python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_1000_cyclisations_ft.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset_after_cyclisation_ft.json -->
+```bash
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/Cyclisation/processed/test.csv -o results/v1_baseline_cyclisation_test_dataset.json
+```
+
+```bash
+python scripts/run_rxnmapper_on_dataset.py --config_path configs/rxnmapper_baseline.yaml --file_path data/Rearrangement/processed/test.csv -o results/v1_baseline_rearrangement_test_dataset.json
+```
+
 
 2. Run Validation of results: 
 
@@ -103,29 +110,81 @@ python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_
 python scripts/validation_script.py --ground_truth_path data/RXNMapperData/Validation/eval_schneider_processed.json --prediction_path results/v1_baseline_validation_dataset.json
 ```
 
-<!-- 2.2  -->
+Or to run on the cyclisation/Rearangement datasets:
+
+```bash
+python scripts/validation_script.py --ground_truth_path data/Cyclisation/processed/test.csv --prediction_path results/v1_baseline_cyclisation_test_dataset.json
+```
+```bash
+python scripts/validation_script.py --ground_truth_path data/Rearrangement/processed/test.csv --prediction_path results/v1_baseline_rearrangement_test_dataset.json
+```
+
 
 ## Training a model: 
 
 1. Once the training data has been processed, Simply run: 
 
 ```bash
-python scripts/train_mlm_alberta.py -c configs/training.yaml
+python scripts/train_mlm_alberta.py -c configs/training_baseline_full_pt.yaml
 ```
 
 
 
-# Extra Experiments: 
+<!-- # Extra Experiments:  -->
 
 
-## Finetuning for atom mapping: 
+<!-- ## Finetuning for atom mapping:  -->
 
+
+# Current Benchmarks on 50/50 Split Cyclisation + Rearrangement Datasets:
+
+## Cyclisation data: 50/50 Split:
+
+Test Size - Samples: 13,665
+
+RXNmapper V1 - No finetuning: 
+
+- 93.5%
+
+RXNMapper V1 + MLM finetuning on Cyclisation-only Data (13,665 samples) :
+
+- 96.5%
+
+RXNMapper V1 + Atom-map Finetuning (13,665 samples):
+
+- 96.5%
+
+
+## Rearrangement data: 50/50 Split
+
+Test Size -  samples: 57,783
+
+RXNMapper V1 - No finetuning:
+
+- 82.9%
+
+RXNMapper V1 + MLM finetuning on Rearrangement-only Data (57,783):
+
+- 92.1%
+
+
+# Current ISSUES: 
+
+- Processing of Atom maps has BUG for the Rearrangement RXNs - TO FIX
+- Would like to see WHERE the atom map is wrong - Is it on the reacting atoms or scattered across reaction.
+- Finetuning with Atom Maps script is very basic - Need to optimise the Trainer class: 
+    - Still takes as input a MLM dataset, although no loss is calculated on it :)
+    - Generates a new dataloader at every forward pass - Clearly not optimal and SLOW
+    - No validation set.
+- Clean code so easily reproducible
+
+<!-- 
 
 ## Future experiments: 
 
 1. Run with randomised smiles
 2. Run with Extra cyclisation and rearrangement reactions
-3. Extra stuff. 
+3. Extra stuff.  -->
 
 
 

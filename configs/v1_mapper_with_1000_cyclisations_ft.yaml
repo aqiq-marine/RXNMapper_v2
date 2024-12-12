@@ -1,9 +1,0 @@
-model_path: "/home/sacharfd/RXNMapper_v2/trained_models/finetuned_v1_model_on_1000_cyclisations_ft_33_epochs_ALL_reactions"
-model_type: "albert"
-attention_multiplier: 90.0
-head: 5
-layers: [10]
-
-
-
-#  python scripts/run_rxnmapper_on_dataset.py --config_path configs/v1_mapper_with_1000_cyclisations_ft.yaml --file_path data/RXNMapperData/Validation/eval_schneider.json -o results/v1_baseline_validation_dataset_after_cyclisation_ft.json 

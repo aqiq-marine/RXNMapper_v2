@@ -1,0 +1,5 @@
+model_path: "trained_models/supervised_ft_Baseline_V1_with_attn_map/checkpoint-18900"
+model_type: "albert"
+attention_multiplier: 1000.0
+head: 5
+layers: [10]

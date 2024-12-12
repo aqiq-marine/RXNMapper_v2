@@ -151,3 +151,15 @@ misc
 data/*.json
 data/RXNMapperData
 processed
+results/
+
+
+
+
+scripts/train_mlm_and_atom_map_xent.py
+
+experiments/
+alberta_full_pt_728000
+
+Checking_reactive_atoms.ipynb
+processed_50-50_train_test/
