@@ -115,7 +115,7 @@ ENV/
 *swp
 
 # shell scripts
-*.sh
+# *.sh
 
 # custom files
 sandbox.py
@@ -158,7 +158,10 @@ results/
 
 scripts/train_mlm_and_atom_map_xent.py
 
-experiments/
+experiments/benchmark_5050
+experiments/benchmark_101080
+experiments/full_pretrained_model
+
 alberta_full_pt_728000
 
 Checking_reactive_atoms.ipynb

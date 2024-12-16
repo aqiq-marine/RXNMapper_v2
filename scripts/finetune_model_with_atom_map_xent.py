@@ -166,7 +166,7 @@ class CustomTrainer(Trainer):
         loss = self.cross_entropy_loss_softmaxed(
             attn_output,
             inputs[2],
-            ignore_index=-100,
+            ignore_index=0,
         )
 
         del outputs
@@ -217,7 +217,7 @@ tokenizer = SmilesTokenizer(
 
 #### USELESS Dataset ####
 # Use much smaller dataset - No use here anyways
-dataset_path = "data/Cyclisation/processed/train.csv"
+dataset_path = "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
 dataset = load_dataset(
     "csv",
     data_files=dataset_path,
@@ -225,9 +225,7 @@ dataset = load_dataset(
 
 
 # Loading the atom-mapping dataset:
-atom_map_data_path = (
-    "data/Cyclisation/processed_50-50_train_test/cleaned_data_with_attention_maps.csv"
-)
+atom_map_data_path = "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
 
 
 atom_map_dataset = load_dataset(
@@ -272,8 +270,8 @@ data_collator = DataCollatorForLanguageModeling(
 
 # Training arguments setup
 training_args = TrainingArguments(
-    output_dir="trained_models/atom_map_ft_V1_model_cyclisation_all_tokens_loss",
-    learning_rate=1e-4,
+    output_dir="trained_models/atom_map_ft_V1_model_cyclisation_101080",
+    learning_rate=5e-6,
     max_steps=50_000,
     weight_decay=0.001,
     logging_steps=100,
