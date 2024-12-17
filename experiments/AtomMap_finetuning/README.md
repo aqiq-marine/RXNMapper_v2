@@ -9,7 +9,6 @@
 
 ## To Finetune: 
 
-
 1. Choose the dataset to finetune on - For now should only either be Cyclisation_5050 / Cyclisation_101080 :(
 2. Choose the base model to use. 
 3. Change Hyperparameters within the configs/finetuning_baseline_AtomMaps.yaml file. 
@@ -21,7 +20,6 @@ Simply run from the base directory:
 ```bash
 bash experiments/AtomMap_finetuning/finetune.sh
 ```
-
 
 
 ## To Validate

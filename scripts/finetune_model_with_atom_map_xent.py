@@ -2,10 +2,6 @@
 
 Finetune Alberta Model with an AtomMap loss function on an attention head.
 
-
-TODO: 
-    - Have the user choose the head/layer to use for finetuning atom-maps :) 
-
 """
 
 from transformers import AlbertForMaskedLM, AlbertConfig, TrainingArguments
@@ -102,11 +98,6 @@ def main(config_path: str):
             attn_implementation="eager",
         )
 
-    # checkpoint_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"
-    # if checkpoint_path:
-    #     # Need to keep the attn implementation as eager for atom mapping to work:
-    #     model = AlbertForMaskedLM.from_pretrained(checkpoint_path, config=model_config)
-
     # Setup the data loader:
     data_collator = CustomDataLoader(tokenizer=tokenizer)
 
@@ -136,6 +127,8 @@ def main(config_path: str):
         args=training_args,
         data_collator=data_collator,
         train_dataset=atom_map_dataset["train"],
+        layer_to_train=config.layers[0],
+        head_to_train=config.head,
     )
 
     # Train the model

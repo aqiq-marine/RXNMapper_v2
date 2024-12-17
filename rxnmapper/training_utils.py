@@ -74,10 +74,15 @@ def parse_config(config_path):
 #################### Custom Training with Atom maps ####################
 class CustomTrainer(Trainer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, head_to_train, layer_to_train, *args, **kwargs):
 
         # Initialise the base class:
         super().__init__(*args, **kwargs)
+
+        self.head = head_to_train
+        self.layer = layer_to_train
+
+        print(f"Training the model with head: {self.head} and layer: {self.layer}")
 
     def get_train_dataloader(self) -> DataLoader:
         """
@@ -243,8 +248,6 @@ class CustomTrainer(Trainer):
         model,
         inputs,
         use_torch_fn=False,
-        layer=10,
-        head=5,
     ):
         """
         Calculate a Cross-Entropy loss for the atom maps in the reaction.
@@ -258,7 +261,7 @@ class CustomTrainer(Trainer):
         )
 
         # Extract the attention output for the specified layer and head:
-        attn_output = outputs.attentions[layer][:, head, :, :]
+        attn_output = outputs.attentions[self.layer][:, self.head, :, :]
 
         # Either use Custom Cross entropy (no softmax)
         if use_torch_fn:
