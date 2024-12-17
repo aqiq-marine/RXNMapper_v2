@@ -6,7 +6,6 @@ python scripts/run_rxnmapper_on_dataset.py --config_path  configs/rxnmapper_base
 python scripts/validation_script.py --ground_truth_path data/RXNMapperData/Test/test_schneider.json --prediction_path experiments/V1_Benchmarks/v1_baseline_model_schneider_testset.json
 
 
-
 # Baseline Model On cyclisation Dataset:
 python scripts/run_rxnmapper_on_dataset.py --config_path  configs/rxnmapper_baseline.yaml --file_path data/Cyclisation/processed/test.csv -o experiments/V1_Benchmarks/v1_baseline_model_cyclisation_101080_testset.json
 

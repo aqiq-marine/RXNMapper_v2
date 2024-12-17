@@ -59,15 +59,15 @@ def main(config_path: str):
         dataset_path = "data/uspto_cyclisation_pretraining_data.csv"
     elif config.dataset_name == "uspto_rearrangement":
         dataset_path = "data/uspto_rearrangement_pretraining_data.csv"
-    elif config.dataset_name == "cyclisation_only":
+    elif config.dataset_name == "cyclisation_101080":
         dataset_path = "data/Cyclisation/processed/train.csv"
-    elif config.dataset_name == "rearrangement_only":
+    elif config.dataset_name == "rearrangement_101080":
         dataset_path = "data/Rearrangement/processed/train.csv"
 
-    elif config.dataset_name == "cyclisation_5050_only":
+    elif config.dataset_name == "cyclisation_5050":
         dataset_path = "data/Cyclisation/processed_50-50_train_test/train.csv"
 
-    elif config.dataset_name == "rearrangement_5050_only":
+    elif config.dataset_name == "rearrangement_5050":
         dataset_path = "data/Rearrangement/processed_50-50_train_test/train.csv"
     else:
         raise ValueError(f"{config.dataset_name} Dataset not supported yet")

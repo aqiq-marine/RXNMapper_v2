@@ -1,5 +1,5 @@
 # Basic Params:
-dataset_name: "full_pretraining"
+dataset_name: "USPTO"
 checkpoint_path: ""
 
 # Model arguments:
@@ -61,11 +61,11 @@ alberta_config: {
 
 
 # Atom mapping parameters: 
-model_path: "trained_models/alberta_full_pretraining/checkpoint-728000"
+model_path: "" # Choose the checkpoint to use for Generation
 model_type: "albert"
 attention_multiplier: 90.0
-head: 3
-layers: [10]
+head: 3       # The correct head will have to be found. 
+layers: [10]  # Correct Layer will also have to be found. 
 
 
 # Masked language modelling parameters:
