@@ -1,5 +1,5 @@
 # Basic Params:
-dataset_name: "cyclisation_only"   # Choose the dataset to finetune on
+dataset_name: "cyclisation_5050"   # Choose the dataset to finetune on
 checkpoint_path: "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"   # Add the path to the pre-trained model here
 
 # Model arguments:
@@ -61,7 +61,7 @@ alberta_config: {
 
 
 # Atom mapping parameters: 
-model_path: ""
+model_path: "trained_models/alberta_baseline_finetuned_cyclisation_5050_split/checkpoint-500"  # Choose the checkpoint to use for Generation
 model_type: "albert"
 attention_multiplier: 90.0
 head: 5
@@ -72,21 +72,21 @@ layers: [10]
 mlm_probability: 0.15
 
 # Training paths and parameters:
-output_dir: "trained_models/alberta_baseline_finetuned"
-logging_dir: "logs/alberta_baseline_finetuned"
+output_dir: "trained_models/alberta_baseline_finetuned_cyclisation_5050_split"
+logging_dir: "logs/alberta_baseline_finetuned_cyclisation_5050_split"
 report_to: ["none"]  # ["wandb"]
-run_name: "alberta_baseline_finetuned"
+run_name: "alberta_baseline_finetuned_cyclisation_5050_split"
 
 
 learning_rate: 0.0001
 weight_decay: 0.0001
 batch_size: 32
-accum_steps: 4
+accum_steps: 1
 
-max_steps: 1_500_000
-warmup_steps: 10_000
+max_steps: 50_000
+warmup_steps: 0
 logging_steps: 500
-save_step: 1_000
+save_step: 500
 
 
 eval_strategy: "no"

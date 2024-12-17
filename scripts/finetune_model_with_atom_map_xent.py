@@ -2,301 +2,142 @@
 
 Finetune Alberta Model with an AtomMap loss function on an attention head.
 
-
-This code is VERY Proof-of-concepty
-
-Issues: 
-    - Still takes as input a MLM dataset, although no loss is calculated on it :)
-    - Generates a new dataloader at every forward pass - Clearly not optimal and SLOW
-    - No validation set.
-
 """
 
-from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments
+from transformers import AlbertForMaskedLM, AlbertConfig, TrainingArguments
 from datasets import load_dataset
-from transformers import DataCollatorForLanguageModeling
+from rxnmapper.training_utils import CustomTrainer, CustomDataLoader, parse_config
 from rxnmapper.tokenization_smiles import SmilesTokenizer
-from torch.utils.data import DataLoader
-import torch
 import ast
+import click
 
 
-class CustomTrainer(Trainer):
+@click.command()
+@click.option(
+    "--config_path",
+    "-c",
+    required=True,
+    help="Path to training config file",
+    type=str,
+)
+def main(config_path: str):
 
-    def __init__(self, *args, train_atom_map_dataset=None, **kwargs):
+    config = parse_config(config_path)
 
-        # Initialise the base class:
-        super().__init__(*args, **kwargs)
+    # Setup the model:
+    model_config = AlbertConfig(
+        **config.alberta_config, attn_implementation="eager"
+    )  # Eager attention so that the attn can be outputted.
+    model = AlbertForMaskedLM(model_config)
 
-        # Here we can add custom functionalities:
-        self.train_atom_map_dataset = train_atom_map_dataset
+    # Setup the tokenizer:
+    vocab_path = (
+        "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+    )
+    tokenizer = SmilesTokenizer(
+        vocab_path,
+        model_max_length=model_config.max_position_embeddings,
+        padding="longest",
+    )
 
-        print(self.train_atom_map_dataset)
+    def tokenize_atom_map_function(examples):
+        # Tokenize the SMILES strings
+        tokenized = tokenizer(examples["rxn"], truncation=True)
 
-    def get_train_attn_map_dataloader(self, atom_map_batch_size=32):
-        """
-        Get dataloader for atom mapping training with vectorized collation.
-        """
-        if self.train_atom_map_dataset is None:
-            raise ValueError(
-                "Trainer: Training with Atom map requires a train_atom_map_dataset"
-            )
+        # Tokenize the atom map:
+        full_rxn_map = ast.literal_eval(examples["full_rxn_maps"])
 
-        train_attn_map_dataset = self.train_atom_map_dataset.remove_columns(["rxn"])
+        # Add the full_rxn_map to the tokenized data:
+        tokenized["full_rxn_maps"] = full_rxn_map
+        return tokenized
 
-        def collate_fn(batch):
-            # Convert batch to pandas-like structure for vectorized operations
-            input_ids = [torch.tensor(x["input_ids"]) for x in batch]
-            atom_maps = [torch.tensor(x["full_rxn_maps"]) for x in batch]
-            attention_masks = [torch.tensor(x["attention_mask"]) for x in batch]
+        #############################
 
-            # Pad in a vectorized way using torch.nn.utils.rnn.pad_sequence
-            input_ids_padded = torch.nn.utils.rnn.pad_sequence(
-                input_ids, batch_first=True, padding_value=0
-            )
-            atom_maps_padded = torch.nn.utils.rnn.pad_sequence(
-                atom_maps, batch_first=True, padding_value=0
-            )
-            attention_masks_padded = torch.nn.utils.rnn.pad_sequence(
-                attention_masks, batch_first=True, padding_value=0
-            )
-
-            return (input_ids_padded, attention_masks_padded, atom_maps_padded)
-
-        return DataLoader(
-            train_attn_map_dataset,
-            batch_size=atom_map_batch_size,
-            collate_fn=collate_fn,
-            shuffle=True,
-            num_workers=1,
+    # Load the datasets: TODO - Change depending on dataset chosen
+    if config.dataset_name == "cyclisation_5050":
+        atom_map_data_path = "data/Cyclisation/processed_50-50_train_test/cleaned_data_with_attention_maps.csv"
+    elif config.dataset_name == "cyclisation_101080_only":
+        atom_map_data_path = (
+            "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
         )
 
-    def training_step(
-        self,
-        model,
-        inputs,
-        num_items_in_batch=None,
-    ):
-
-        del inputs
-        model.train()
-        if hasattr(self.optimizer, "train") and callable(self.optimizer.train):
-            self.optimizer.train()
-
-        # Get the atom map dataloader:
-        atom_map_dataloader = self.get_train_attn_map_dataloader(
-            atom_map_batch_size=32,
+    elif config.dataset_name == "cyclisation_101080":
+        atom_map_data_path = (
+            "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
         )
 
-        # randomly sample ;
-        input_atom_map = next(iter(atom_map_dataloader))
-
-        inputs_atom_map = self._prepare_inputs(input_atom_map)
-        loss = self.compute_atom_map_loss(model, inputs_atom_map)
-
-        del inputs_atom_map
-
-        kwargs = {}
-
-        if self.args.n_gpu > 1:
-            loss = loss.mean()  # mean() to average on multi-gpu parallel training
-
-        self.accelerator.backward(loss, **kwargs)
-        # Finally we need to normalize the loss for reporting
-        if num_items_in_batch is None:
-            return loss.detach() / self.args.gradient_accumulation_steps
-
-        return loss.detach()
-
-    def cross_entropy_loss_softmaxed(self, predictions, labels_, ignore_index=-100):
-        """
-        Computes cross-entropy loss for softmaxed predictions in PyTorch.
-
-        Args:
-            predictions (torch.Tensor): Softmaxed predictions, shape (N, C).
-            labels (torch.Tensor): One-hot encoded labels, shape (N, C).
-
-        Returns:
-            torch.Tensor: Cross-entropy loss.
-        """
-
-        batch_size, seq_len, _ = predictions.shape
-        predictions = predictions.reshape(batch_size * seq_len, seq_len)
-
-        # Turn into labels:
-        labels = torch.nn.functional.one_hot(
-            labels_,
-            num_classes=labels_.shape[1],
-        )
-        labels = labels.reshape(batch_size * seq_len, seq_len)
-
-        # Create mask for non-ignored indices
-        mask = (labels_ != ignore_index).view(batch_size * seq_len)
-
-        # Avoid log(0) by clipping
-        epsilon = 1e-10
-        predictions = torch.clamp(predictions, min=epsilon, max=1.0)
-
-        # Apply mask to labels and predictions
-        masked_labels = labels[mask]
-        masked_predictions = predictions[mask]
-
-        # Compute cross-entropy loss
-        loss = -torch.sum(
-            masked_labels * torch.log(masked_predictions)
-        ) / masked_predictions.size(0)
-
-        return loss
-
-    def compute_atom_map_loss(self, model, inputs):
-
-        # Setup forward pass:
-        outputs = model(
-            input_ids=inputs[0],
-            attention_mask=inputs[1],
-            output_attentions=True,
+    elif config.dataset_name == "rearrangement_5050":
+        atom_map_data_path = "data/Rearrangement/processed_50-50_train_test/cleaned_data_with_attention_maps.csv"
+        raise NotImplementedError(
+            "Rearrangement dataset not implemented yet - Still have some bugs in the extraction of atom-maps"
         )
 
-        # Hard coded heads and layers for now
-        layer = 10
-        head = 5
-
-        attn_output = outputs.attentions[layer][:, head, :, :]
-
-        loss = self.cross_entropy_loss_softmaxed(
-            attn_output,
-            inputs[2],
-            ignore_index=0,
+    else:
+        raise ValueError(
+            f"{config.dataset_name} Dataset not supported yet. Please choose from: cyclisation_5050_only, cyclisation_101080_only, rearrangement_5050_only"
         )
 
-        del outputs
-        del attn_output
+    print(f"Loading the {config.dataset_name} dataset...")
+    atom_map_dataset = load_dataset(
+        "csv",
+        data_files=atom_map_data_path,
+    )
 
-        return loss
+    # Tokenise the atom map dataset:
+    atom_map_dataset = atom_map_dataset.map(
+        tokenize_atom_map_function,
+        batched=False,
+        num_proc=24,
+    )
 
+    # Load model from checkpoint:
+    if config.checkpoint_path:
+        print(f"Loading model from checkpoint: {config.checkpoint_path}")
+        model = AlbertForMaskedLM.from_pretrained(
+            config.checkpoint_path,
+            attn_implementation="eager",
+        )
 
-################################################################################
+    # Setup the data loader:
+    data_collator = CustomDataLoader(tokenizer=tokenizer)
 
+    # Training arguments setup
+    training_args = TrainingArguments(
+        output_dir=config.output_dir,
+        learning_rate=config.learning_rate,
+        weight_decay=config.weight_decay,
+        per_device_train_batch_size=config.batch_size,
+        gradient_accumulation_steps=config.accum_steps,
+        max_steps=config.max_steps,
+        eval_strategy=config.eval_strategy,
+        save_strategy=config.save_strategy,
+        logging_steps=config.logging_steps,
+        save_steps=config.save_step,
+        save_total_limit=config.save_total_limit,
+        save_only_model=True,
+        logging_first_step=True,
+        logging_dir=config.logging_dir,
+        report_to=config.report_to,
+        run_name=config.run_name,
+    )
 
-def tokenize_function(examples):
-    # Tokenize the SMILES strings
-    tokenized = tokenizer(examples["rxn"])
-    return tokenized
+    # Trainer setup:
+    trainer = CustomTrainer(
+        model=model,
+        args=training_args,
+        data_collator=data_collator,
+        train_dataset=atom_map_dataset["train"],
+        layer_to_train=config.layers[0],
+        head_to_train=config.head,
+    )
 
+    # Train the model
+    trainer.train()
 
-def tokenize_atom_map_function(examples):
-    # Tokenize the SMILES strings
-    tokenized = tokenizer(examples["rxn"])
-
-    # Tokenize the atom map:
-    full_rxn_map = ast.literal_eval(examples["full_rxn_maps"])
-
-    # Add the full_rxn_map to the tokenized data:
-    tokenized["full_rxn_maps"] = full_rxn_map
-
-    return tokenized
-
-
-################################################################################
-
-
-# Tokenizer setup
-vocab_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
-max_length = 512  # Maximum sequence length for debugging
-
-tokenizer = SmilesTokenizer(
-    vocab_path,
-    # model_max_length=max_length,
-    max_length=max_length,
-    truncation=True,
-    padding="longest",
-)
-
-
-# Dataset setup
-
-#### USELESS Dataset ####
-# Use much smaller dataset - No use here anyways
-dataset_path = "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
-dataset = load_dataset(
-    "csv",
-    data_files=dataset_path,
-)
-
-
-# Loading the atom-mapping dataset:
-atom_map_data_path = "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
-
-
-atom_map_dataset = load_dataset(
-    "csv",
-    data_files=atom_map_data_path,
-)
+    # Save the model:
+    trainer.save_model(config.output_dir)
+    print(f"Model saved to {config.output_dir}")
 
 
-# Tokenize the dataset
-dataset = dataset.map(
-    tokenize_function,
-    batched=True,
-    num_proc=24,
-)
-
-# Tokenise the atom map dataset:
-atom_map_dataset = atom_map_dataset.map(
-    tokenize_atom_map_function,
-    batched=False,
-    num_proc=24,
-)
-
-
-# Model setup
-alberta_config_path = "configs/config.json"
-model_config = AlbertConfig.from_pretrained(
-    alberta_config_path, attn_implementation="eager"
-)
-model = AlbertForMaskedLM(model_config)
-
-# Load model from checkpoint:
-checkpoint_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"
-if checkpoint_path:
-    # Need to keep the attn implementation as eager for atom mapping to work:
-    model = AlbertForMaskedLM.from_pretrained(checkpoint_path, config=model_config)
-
-
-# Data collator for MLM, using a mask probability of 15%
-data_collator = DataCollatorForLanguageModeling(
-    tokenizer=tokenizer, mlm=True, mlm_probability=0.15
-)
-
-# Training arguments setup
-training_args = TrainingArguments(
-    output_dir="trained_models/atom_map_ft_V1_model_cyclisation_101080",
-    learning_rate=5e-6,
-    max_steps=50_000,
-    weight_decay=0.001,
-    logging_steps=100,
-    eval_strategy="no",
-    save_strategy="steps",  # Disable saving model checkpoints
-    save_steps=100,
-    save_total_limit=10,
-    save_only_model=True,
-    per_device_train_batch_size=32,
-    gradient_accumulation_steps=1,
-    logging_dir="logs",
-    logging_first_step=True,
-    report_to=["none"],  # Disable wandb or any other reporting
-    # run_name="alberta_all_rxn",
-)
-
-
-# Trainer setup
-trainer = CustomTrainer(
-    model=model,
-    args=training_args,
-    data_collator=data_collator,
-    train_dataset=dataset["train"],
-    train_atom_map_dataset=atom_map_dataset["train"],
-)
-
-# Train the model
-trainer.train()
+if __name__ == "__main__":
+    main()
