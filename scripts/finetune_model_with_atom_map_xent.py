@@ -14,62 +14,68 @@ Issues:
 
 from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments
 from datasets import load_dataset
-from transformers import DataCollatorForLanguageModeling
+from transformers import (
+    DataCollatorWithPadding,
+)
+from transformers.data.data_collator import pad_without_fast_tokenizer_warning
+from transformers.utils.import_utils import is_datasets_available
+from transformers.trainer_utils import seed_worker
+
 from rxnmapper.tokenization_smiles import SmilesTokenizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 import torch
 import ast
+from typing import Any, Callable, Dict, List, NewType, Optional, Tuple, Union
 
 
 class CustomTrainer(Trainer):
 
-    def __init__(self, *args, train_atom_map_dataset=None, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         # Initialise the base class:
         super().__init__(*args, **kwargs)
 
-        # Here we can add custom functionalities:
-        self.train_atom_map_dataset = train_atom_map_dataset
-
-        print(self.train_atom_map_dataset)
-
-    def get_train_attn_map_dataloader(self, atom_map_batch_size=32):
+    def get_train_dataloader(self) -> DataLoader:
         """
-        Get dataloader for atom mapping training with vectorized collation.
+        Returns the training [`~torch.utils.data.DataLoader`].
+
+        Will use no sampler if `train_dataset` does not implement `__len__`, a random sampler (adapted to distributed
+        training if necessary) otherwise.
+
+        Subclass and override this method if you want to inject some custom behavior.
         """
-        if self.train_atom_map_dataset is None:
-            raise ValueError(
-                "Trainer: Training with Atom map requires a train_atom_map_dataset"
+        if self.train_dataset is None:
+            raise ValueError("Trainer: training requires a train_dataset.")
+
+        train_dataset = self.train_dataset
+        data_collator = self.data_collator
+        if is_datasets_available() and isinstance(train_dataset, Dataset):
+            train_dataset = self._remove_unused_columns(
+                train_dataset, description="training"
             )
-
-        train_attn_map_dataset = self.train_atom_map_dataset.remove_columns(["rxn"])
-
-        def collate_fn(batch):
-            # Convert batch to pandas-like structure for vectorized operations
-            input_ids = [torch.tensor(x["input_ids"]) for x in batch]
-            atom_maps = [torch.tensor(x["full_rxn_maps"]) for x in batch]
-            attention_masks = [torch.tensor(x["attention_mask"]) for x in batch]
-
-            # Pad in a vectorized way using torch.nn.utils.rnn.pad_sequence
-            input_ids_padded = torch.nn.utils.rnn.pad_sequence(
-                input_ids, batch_first=True, padding_value=0
+        else:
+            # Keep the RXN Maps for training:
+            self.label_names.append("full_rxn_maps")
+            data_collator = self._get_collator_with_removed_columns(
+                data_collator, description="training"
             )
-            atom_maps_padded = torch.nn.utils.rnn.pad_sequence(
-                atom_maps, batch_first=True, padding_value=0
-            )
-            attention_masks_padded = torch.nn.utils.rnn.pad_sequence(
-                attention_masks, batch_first=True, padding_value=0
-            )
+        # exit()
 
-            return (input_ids_padded, attention_masks_padded, atom_maps_padded)
+        dataloader_params = {
+            "batch_size": self._train_batch_size,
+            "collate_fn": data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "persistent_workers": self.args.dataloader_persistent_workers,
+        }
 
-        return DataLoader(
-            train_attn_map_dataset,
-            batch_size=atom_map_batch_size,
-            collate_fn=collate_fn,
-            shuffle=True,
-            num_workers=1,
-        )
+        if not isinstance(train_dataset, torch.utils.data.IterableDataset):
+            dataloader_params["sampler"] = self._get_train_sampler()
+            dataloader_params["drop_last"] = self.args.dataloader_drop_last
+            dataloader_params["worker_init_fn"] = seed_worker
+            dataloader_params["prefetch_factor"] = self.args.dataloader_prefetch_factor
+
+        return self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
 
     def training_step(
         self,
@@ -78,23 +84,15 @@ class CustomTrainer(Trainer):
         num_items_in_batch=None,
     ):
 
-        del inputs
         model.train()
         if hasattr(self.optimizer, "train") and callable(self.optimizer.train):
             self.optimizer.train()
 
-        # Get the atom map dataloader:
-        atom_map_dataloader = self.get_train_attn_map_dataloader(
-            atom_map_batch_size=32,
-        )
+        inputs_prepped = self._prepare_inputs(inputs)
 
-        # randomly sample ;
-        input_atom_map = next(iter(atom_map_dataloader))
+        loss = self.compute_atom_map_loss(model, inputs_prepped)
 
-        inputs_atom_map = self._prepare_inputs(input_atom_map)
-        loss = self.compute_atom_map_loss(model, inputs_atom_map)
-
-        del inputs_atom_map
+        del inputs
 
         kwargs = {}
 
@@ -152,8 +150,8 @@ class CustomTrainer(Trainer):
 
         # Setup forward pass:
         outputs = model(
-            input_ids=inputs[0],
-            attention_mask=inputs[1],
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
             output_attentions=True,
         )
 
@@ -165,7 +163,7 @@ class CustomTrainer(Trainer):
 
         loss = self.cross_entropy_loss_softmaxed(
             attn_output,
-            inputs[2],
+            inputs["full_rxn_maps"],
             ignore_index=0,
         )
 
@@ -175,18 +173,68 @@ class CustomTrainer(Trainer):
         return loss
 
 
+### Setup new Data Loader ###
+
+
+class CustomDataLoader(DataCollatorWithPadding):
+
+    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+        # Get all the atom maps:
+        rxn_atom_maps = [torch.tensor(rxn["full_rxn_maps"]) for rxn in features]
+
+        # Get all the other features - not including the full_rxn_maps:
+        features = [
+            {k: v for k, v in rxn.items() if k != "full_rxn_maps"} for rxn in features
+        ]
+
+        batch = pad_without_fast_tokenizer_warning(
+            self.tokenizer,
+            features,
+            padding=self.padding,
+            max_length=self.max_length,
+            pad_to_multiple_of=self.pad_to_multiple_of,
+            return_tensors=self.return_tensors,
+        )
+
+        # No we can pad the rxn_atom_maps the same length - with 0s:
+        rxn_atom_maps = torch.nn.utils.rnn.pad_sequence(
+            rxn_atom_maps, batch_first=True, padding_value=0
+        )
+        max_length = batch["input_ids"].shape[1]
+        assert (
+            rxn_atom_maps.shape[1] == max_length
+        ), "Error in the padding of the Atom Maps :( - Have a look at the code. "
+
+        # Add the rxn_atom_maps to the batch:
+        batch["full_rxn_maps"] = rxn_atom_maps
+
+        if "label" in batch:
+            batch["labels"] = batch["label"]
+            del batch["label"]
+        if "label_ids" in batch:
+            batch["labels"] = batch["label_ids"]
+            del batch["label_ids"]
+        return batch
+
+    pass
+
+
+#############################
+
+
 ################################################################################
 
 
 def tokenize_function(examples):
     # Tokenize the SMILES strings
-    tokenized = tokenizer(examples["rxn"])
+    tokenized = tokenizer(examples["rxn"], truncation=True)
     return tokenized
 
 
 def tokenize_atom_map_function(examples):
     # Tokenize the SMILES strings
-    tokenized = tokenizer(examples["rxn"])
+    tokenized = tokenizer(examples["rxn"], truncation=True)
 
     # Tokenize the atom map:
     full_rxn_map = ast.literal_eval(examples["full_rxn_maps"])
@@ -206,8 +254,7 @@ max_length = 512  # Maximum sequence length for debugging
 
 tokenizer = SmilesTokenizer(
     vocab_path,
-    # model_max_length=max_length,
-    max_length=max_length,
+    model_max_length=max_length,
     truncation=True,
     padding="longest",
 )
@@ -217,11 +264,11 @@ tokenizer = SmilesTokenizer(
 
 #### USELESS Dataset ####
 # Use much smaller dataset - No use here anyways
-dataset_path = "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
-dataset = load_dataset(
-    "csv",
-    data_files=dataset_path,
-)
+# dataset_path = "data/Cyclisation/processed/cleaned_data_with_attention_maps.csv"
+# dataset = load_dataset(
+#     "csv",
+#     data_files=dataset_path,
+# )
 
 
 # Loading the atom-mapping dataset:
@@ -234,12 +281,12 @@ atom_map_dataset = load_dataset(
 )
 
 
-# Tokenize the dataset
-dataset = dataset.map(
-    tokenize_function,
-    batched=True,
-    num_proc=24,
-)
+# # Tokenize the dataset
+# dataset = dataset.map(
+#     tokenize_function,
+#     batched=True,
+#     num_proc=24,
+# )
 
 # Tokenise the atom map dataset:
 atom_map_dataset = atom_map_dataset.map(
@@ -247,6 +294,11 @@ atom_map_dataset = atom_map_dataset.map(
     batched=False,
     num_proc=24,
 )
+
+# print(atom_map_dataset)
+# exit()
+print(atom_map_dataset["train"][0])
+# exit()
 
 
 # Model setup
@@ -264,13 +316,11 @@ if checkpoint_path:
 
 
 # Data collator for MLM, using a mask probability of 15%
-data_collator = DataCollatorForLanguageModeling(
-    tokenizer=tokenizer, mlm=True, mlm_probability=0.15
-)
+data_collator = CustomDataLoader(tokenizer=tokenizer)
 
 # Training arguments setup
 training_args = TrainingArguments(
-    output_dir="trained_models/atom_map_ft_V1_model_cyclisation_101080",
+    output_dir="trained_models/testing_new_xent_loss_fxn",
     learning_rate=5e-6,
     max_steps=50_000,
     weight_decay=0.001,
@@ -294,8 +344,8 @@ trainer = CustomTrainer(
     model=model,
     args=training_args,
     data_collator=data_collator,
-    train_dataset=dataset["train"],
-    train_atom_map_dataset=atom_map_dataset["train"],
+    # train_dataset=dataset["train"],
+    train_dataset=atom_map_dataset["train"],
 )
 
 # Train the model
