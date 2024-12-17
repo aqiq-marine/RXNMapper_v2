@@ -332,6 +332,8 @@ def main(path_to_data_csv):
 if __name__ == "__main__":
     print("Setting up the atom maps for the cyclisation dataset")
 
-    path_to_data_to_atom_map = "data/Cyclisation/processed_50-50_train_test/train.csv"  # "data/Cyclisation/processed/train.csv"
+    path_to_data_to_atom_map = (
+        "data/Cyclisation/processed/train.csv"  # "data/Cyclisation/processed/train.csv"
+    )
 
     main(path_to_data_csv=path_to_data_to_atom_map)

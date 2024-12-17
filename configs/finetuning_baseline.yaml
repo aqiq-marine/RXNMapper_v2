@@ -1,6 +1,6 @@
 # Basic Params:
-dataset_name: "USPTO"
-checkpoint_path: ""
+dataset_name: "cyclisation_only"   # Choose the dataset to finetune on
+checkpoint_path: "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"   # Add the path to the pre-trained model here
 
 # Model arguments:
 alberta_config: {
@@ -71,11 +71,11 @@ layers: [10]
 # Masked language modelling parameters:
 mlm_probability: 0.15
 
-# Training parameters:
-output_dir: "trained_models/alberta_baseline"
-logging_dir: "logs/alberta_baseline"
+# Training paths and parameters:
+output_dir: "trained_models/alberta_baseline_finetuned"
+logging_dir: "logs/alberta_baseline_finetuned"
 report_to: ["none"]  # ["wandb"]
-run_name: "alberta_baseline"
+run_name: "alberta_baseline_finetuned"
 
 
 learning_rate: 0.0001

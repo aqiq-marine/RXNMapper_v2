@@ -29,8 +29,6 @@ def create_rxn_smiles_from_rxn_equation(rxn_equation):
     products = ".".join(products)
     return f"{reactants}>>{products}"
 
-    # return f"{reactants[0]}>>{products[0]}"
-
 
 def main_no_maps(gt_rxns, predicted_rxns):
     """

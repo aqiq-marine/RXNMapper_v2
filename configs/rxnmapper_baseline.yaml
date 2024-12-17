@@ -1,4 +1,4 @@
-model_path: "/home/sacharfd/rxn_mapper_retrained/rxnmapper/rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"
+model_path: "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"
 model_type: "albert"
 attention_multiplier: 90.0
 head: 5
