@@ -13,3 +13,6 @@ DF_PATH = '../data/full_pretraining_data.csv'
 # dataset name 
 REACTION_COL_NAME = 'rxn'
 
+# are the reactions mapped
+REACTIONS_MAPPED = False
+
