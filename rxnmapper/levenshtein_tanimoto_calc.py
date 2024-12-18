@@ -7,6 +7,7 @@ from rdkit.Chem import MolFromSmiles, MolToSmiles
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 
 from rapidfuzz.distance import Levenshtein
+from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
 
 from rdkit import RDLogger
@@ -18,10 +19,12 @@ from rxnmapper.data_handler import DataHandler
 class CalcDistances:
     def __init__(self, 
                  file_path, 
-                 rxn_col='rxn',):
+                 rxn_col='rxn',
+                 mapped = False):
         
         self.file_path = file_path
         self.rxn_col = rxn_col
+        self.mapped = mapped
 
         self.num_workers = os.cpu_count()-2
 
@@ -87,6 +90,97 @@ class CalcDistances:
         except:
             return None
 
+    @staticmethod
+    def get_reac_reag_rightside_rxn(reaction_smiles:str)->tuple:
+        '''
+        Separate reactants, reagents and products from a reaction mapped SMILES string
+        '''
+        try:
+            # split the different reactants/reagents and products
+            left_smiles, right_smiles = reaction_smiles.split(">>")
+
+            # split both reaction sides into individual molecules
+            left_molecules = left_smiles.split(".")
+            right_molecules = right_smiles.split(".")
+
+            # convert right molecules (=products) into RDKit mol objects
+            right_mols = [Chem.MolFromSmiles(smiles) for smiles in right_molecules]
+
+            # extract atom mapping from the product molecules
+            mapped_atoms_in_products = set()
+            for mol in right_mols:
+                if mol:
+                    for atom in mol.GetAtoms():
+                        if atom.GetAtomMapNum() > 0:
+                            mapped_atoms_in_products.add(atom.GetAtomMapNum())
+
+            # classify left molecules into reactants and reagents
+            reactants = []
+            reagents = []
+            for smiles in left_molecules:
+                mol = Chem.MolFromSmiles(smiles)
+                if mol:
+                    # check if any atom in the molecule is mapped to the products
+                    has_mapped_atoms = any(
+                        atom.GetAtomMapNum() in mapped_atoms_in_products for atom in mol.GetAtoms()
+                    )
+                    if has_mapped_atoms:
+                        reactants.append(smiles)
+                    else:
+                        reagents.append(smiles)
+            return reactants, reagents, right_molecules
+        except:
+            return None
+
+    def get_reac_reag_rightside_rxn_list(self, rxn_list:list)->list:
+        with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
+            results = list(executor.map(self.get_reac_reag_rightside_rxn, rxn_list))
+        return results
+
+    @staticmethod
+    def get_unmapped_smiles(smi:str)->str:
+        try:
+            # Convert the mapped SMILES to an RDKit molecule
+            mol = Chem.MolFromSmiles(smi)
+            if not mol:
+                raise ValueError("Invalid SMILES")
+
+            # Remove atom mapping
+            for atom in mol.GetAtoms():
+                atom.SetAtomMapNum(0)  
+
+            # Generate the unmapped SMILES
+            unmapped_smiles = Chem.MolToSmiles(mol)
+            return unmapped_smiles
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
+
+    def get_unmapped_smiles_list(self, smiles_list:list)->list:
+        with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
+            results = list(executor.map(self.get_unmapped_smiles, smiles_list))
+        return results
+    
+    @staticmethod
+    def rebuild_rxn_series(reactants_series, products_series):
+        return reactants_series.str.cat([">>"] * len(reactants_series)).str.cat(products_series)
+
+    def remove_reagents_from_mapped_rxn_list(self, rxn_list):
+
+        # separate reactants, reagents and products from the mapped reaction SMILES
+        results = self.get_reac_reag_rightside_rxn_list(rxn_list)
+
+        # create a dataframe from the results
+        df_reac_reag_prod = pd.DataFrame(results, columns=['reactants', 'reagents', 'products'])
+        df_reac_reag_prod = df_reac_reag_prod.applymap(lambda x: x[0] if isinstance(x, list) and len(x) > 0 else x)
+
+        df_reac_reag_prod['reactants_nomap'] = self.get_unmapped_smiles_list(df_reac_reag_prod['reactants'].values.tolist())
+        df_reac_reag_prod['products_nomap'] = self.get_unmapped_smiles_list(df_reac_reag_prod['products'].values.tolist())
+        
+        reactions = self.rebuild_rxn_series(df_reac_reag_prod['reactants_nomap'], df_reac_reag_prod['products_nomap'])
+
+        return reactions
+
     def calc_levenshtein_dist_df(self):
         
         # load dataframe 
@@ -94,6 +188,11 @@ class CalcDistances:
         data_handler = DataHandler(file_path=self.file_path)
         df = data_handler.load_data()
         
+        # get the reactions without reagents if mapped
+        if self.mapped:
+            print('Removing reagents from the reactions...')
+            df[self.rxn_col] = self.remove_reagents_from_mapped_rxn_list(df[self.rxn_col].values.tolist())
+
         # canonicalize + sort each side of the reaction
         print('Canonicalizing reactions...')
         df['can_rxn'] = self.parallel_apply_batches(df[self.rxn_col], self.canonicalize_rxn, num_workers=self.num_workers)
@@ -127,6 +226,11 @@ class CalcDistances:
         print(f'Loading data from {self.file_path}')
         data_handler = DataHandler(file_path=self.file_path)
         df = data_handler.load_data()
+
+        # get the reactions without reagents if mapped
+        if self.mapped:
+            print('Removing reagents from the reactions...')
+            df[self.rxn_col] = self.remove_reagents_from_mapped_rxn_list(df[self.rxn_col].values.tolist())
 
         # split reactions into reactants and products series
         print('Splitting reactions into reactants and products...')

@@ -7,7 +7,7 @@ import argparse
 # Append the parent directory to sys.path to import modules from src
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from configs.config_calc_levenshtein_tanimoto import BASE_DIR, DF_PATH, REACTION_COL_NAME
+from configs.config_calc_levenshtein_tanimoto import BASE_DIR, DF_PATH, REACTION_COL_NAME, REACTIONS_MAPPED
 from rxnmapper.levenshtein_tanimoto_calc import CalcDistances
 
 def parse_arguments():
@@ -16,6 +16,7 @@ def parse_arguments():
     # Optional arguments to override config settings
     parser.add_argument('--file_path', type=str, default=DF_PATH, help='Path to the dataframe containing the reactions')
     parser.add_argument('--rxn_col', type=str, default=REACTION_COL_NAME, help='Name of the column containing the reactions')
+    parser.add_argument('--mapped', type=bool, default=REACTIONS_MAPPED, help='Are the reactions mapped?')
     return parser.parse_args()
 
 def main():
@@ -27,7 +28,7 @@ def main():
     logger = logging.getLogger(__name__)
     
     # initialize the CalcDistances class
-    calculate_distances = CalcDistances(args.file_path, args.rxn_col)
+    calculate_distances = CalcDistances(args.file_path, args.rxn_col, args.mapped)
 
 
     start_time = time.time()
