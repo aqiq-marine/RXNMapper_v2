@@ -17,6 +17,7 @@ from datasets import load_dataset
 from transformers import DataCollatorForLanguageModeling
 from rxnmapper.tokenization_smiles import SmilesTokenizer
 import click
+import yaml
 from rxnmapper.training_utils import parse_config
 
 
@@ -35,7 +36,7 @@ def main(config_path: str):
     
     # load the "resume_from_checkpoint" argument from YAML config file
     with open(config_path, "r") as f:
-    	raw_config = yaml.safe_load(f)
+        raw_config = yaml.safe_load(f)
     resume = raw_config.get("resume_from_checkpoint", False)
     
     # Setup model:
