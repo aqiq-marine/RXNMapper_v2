@@ -62,12 +62,13 @@ class Config:
     save_only_model: bool
 
 
-def parse_config(config_path):
-    """
-    Parse the configuration file and return a Config object
-    """
+def parse_config(config_path): # modified to take into account boolean "resume_from_checkpoint" argument in YAML config file
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
+
+    # REMOVE resume_from_checkpoint before instantiating the Config class
+    config.pop("resume_from_checkpoint", None)
+
     return Config(**config)
 
 

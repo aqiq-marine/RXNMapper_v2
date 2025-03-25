@@ -28,10 +28,16 @@ from rxnmapper.training_utils import parse_config
     help="Path to training config file",
     type=str,
 )
+
 def main(config_path: str):
 
     config = parse_config(config_path)
-
+    
+    # load the "resume_from_checkpoint" argument from YAML config file
+    with open(config_path, "r") as f:
+    	raw_config = yaml.safe_load(f)
+    resume = raw_config.get("resume_from_checkpoint", False)
+    
     # Setup model:
     model_config = AlbertConfig(**config.alberta_config)
     model = AlbertForMaskedLM(model_config)
@@ -53,6 +59,8 @@ def main(config_path: str):
     # Dataset setup
     if config.dataset_name == "USPTO":
         dataset_path = f"data/RXNMapperData/Training/uspto_all_reactions_{model_config.max_position_embeddings}_max_input_len.csv"
+    elif config.dataset_name == "USPTO_1065k":
+        dataset_path = f"data/USPTO_FULL/uspto_1065k_{model_config.max_position_embeddings}_max_input_len.csv"
     elif config.dataset_name == "full_pretraining":
         dataset_path = "data/full_pretraining_data.csv"
     elif config.dataset_name == "uspto_cyclisation":
@@ -127,7 +135,7 @@ def main(config_path: str):
     )
 
     # Train the model
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume)
 
     # Save the model:
     trainer.save_model(config.output_dir)

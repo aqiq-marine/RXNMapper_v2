@@ -74,7 +74,6 @@ mlm_probability: 0.15
 # Training parameters:
 output_dir: "trained_models/alberta_full_pretraining"
 logging_dir: "logs/alberta_full_pretraining"
-report_to: ["none"]  # ["wandb"]
 run_name: "alberta_full_pretraining"
 
 
@@ -85,14 +84,17 @@ accum_steps: 4
 
 max_steps: 1_500_000
 warmup_steps: 10_000
-logging_steps: 500
-save_step: 1_000
 
+save_strategy: "steps"
+save_step: 10_000
+save_total_limit: 150
+
+logging_strategy: "steps"
+logging_steps: 500
+logging_first_step: True
+report_to: ["tensorboard"]  # ["wandb"]
 
 eval_strategy: "no"
-save_strategy: "steps"
-logging_first_step: True
-save_total_limit: 10
 save_only_model: True
 
 
