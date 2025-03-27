@@ -91,13 +91,32 @@ class RXNMapper:
         )
 
         # Use the Vocab from V1 model:
-        vocab_path = (
-            "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+        #vocab_path = (
+        #    "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+        #)
+#
+        #if os.path.exists(os.path.join(self.model_path, "vocab.txt")):
+        #    vocab_path = os.path.join(self.model_path, "vocab.txt")
+
+        # reworked vocab path code -----
+
+        vocab_path_candidate = os.path.join(self.model_path, "vocab.txt")
+
+        default_vocab_path = os.path.join(
+            os.path.dirname(__file__), 
+            "models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
         )
 
-        if os.path.exists(os.path.join(self.model_path, "vocab.txt")):
-            vocab_path = os.path.join(self.model_path, "vocab.txt")
-
+        if os.path.exists(vocab_path_candidate):
+            vocab_path = vocab_path_candidate
+        elif os.path.exists(default_vocab_path):
+            vocab_path = default_vocab_path
+        else:
+            raise FileNotFoundError(
+                f"Cannot find vocab.txt in model folder or default path. \n"
+                f"Tried:\n - {vocab_path_candidate}\n - {default_vocab_path}"
+            )
+        # -----------------------------
         tokenizer = SmilesTokenizer(
             vocab_path,
             max_len=model.config.max_position_embeddings,
