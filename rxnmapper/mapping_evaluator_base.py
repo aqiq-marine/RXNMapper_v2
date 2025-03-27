@@ -1,6 +1,6 @@
 import pandas as pd
 from tqdm import tqdm
-from typing import List, Dict
+from typing import List, Dict, Optional
 from rxnmapper import BatchedMapper
 from rxnmapper.smiles_utils import compare_pred_maps_w_ground_truth
 
@@ -38,8 +38,8 @@ class BaseMappingEvaluator:
         """
         assert "head" in config and "layer" in config, "Config must contain 'head' and 'layer'"
 
-        model_path = config.get("model_path", self.model_path)
-        model_type = config.get("model_type", self.model_type)
+        model_path = config["model_path"] if "model_path" in config else self.model_path
+        model_type = config["model_type"] if "model_type" in config else self.model_type
 
         mapper = BatchedMapper(
             batch_size=self.batch_size, 
@@ -61,15 +61,20 @@ class BaseMappingEvaluator:
         return mapped_results
 
 
-    def map_rxns_from_models_in_dict(self) -> pd.DataFrame: 
+    def map_rxns_from_models_in_dict(self, config_dict: Optional[Dict[str, Dict]] = None) -> pd.DataFrame: 
         """
         Runs mapping for all models in self.models_to_eval_dict.
 
+        Args:
+            config_dict (Optional[Dict[str, Dict]]): A dict of model configs. Defaults to self.models_to_eval_dict.
+        
         Returns:
             pd.DataFrame: Combined DataFrame of all predictions with model identifiers.
         """
+        config_dict = config_dict or self.models_to_eval_dict
         all_results = []
-        for model_id, model_config in tqdm(self.models_to_eval_dict.items(), desc="Models"):
+
+        for model_id, model_config in tqdm(config_dict.items(), desc="Models"):
             model_results = self.map_rxns_from_dict(model_config)
 
             for r in model_results:
