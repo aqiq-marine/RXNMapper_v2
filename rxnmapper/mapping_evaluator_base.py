@@ -1,0 +1,108 @@
+import pandas as pd
+from tqdm import tqdm
+from typing import List, Dict
+from rxnmapper import BatchedMapper
+from rxnmapper.smiles_utils import compare_pred_maps_w_ground_truth
+
+class BaseMappingEvaluator:
+    """
+    Base class for evaluating atom-mapped reaction predictions
+    """
+
+    def _validate_attrs(self, required_attrs: List[str]):
+        """
+        Check that required attributes are defined in the subclass instance.
+
+        Args:
+            required_attrs (List[str]): List of attribute names to validate.
+
+        Raises:
+            AttributeError: If any required attribute is missing.
+        """
+        for attr in required_attrs:
+            if not hasattr(self, attr):
+                raise AttributeError(
+                    f"Missing required attribute '{attr}' in {self.__class__.__name__}."
+                )
+
+
+    def map_rxns_from_dict(self, config: Dict) -> List[Dict]:
+        """
+        Maps reactions using a given model configuration.
+
+        Args:
+            config (Dict): Dictionary with at least 'head' and 'layer'. Optionally 'model_path' and 'model_type'.
+
+        Returns:
+            List[Dict]: Mapping results with confidence scores
+        """
+        assert "head" in config and "layer" in config, "Config must contain 'head' and 'layer'"
+
+        model_path = config.get("model_path", self.model_path)
+        model_type = config.get("model_type", self.model_type)
+
+        mapper = BatchedMapper(
+            batch_size=self.batch_size, 
+            model_path=model_path, 
+            head=config["head"], 
+            layer=config["layer"], 
+            model_type=model_type, 
+            attention_multiplier=self.attention_multiplier, 
+            canonicalize=self.canonicalize, 
+            placeholder_for_invalid=self.placeholder_for_invalid, 
+        )
+
+        mapped_results = []
+        for result in mapper.map_reactions_with_info(self.rxns_list):
+            mapped_results.append({
+                "mapped_rxn": result.get("mapped_rxn", self.placeholder_for_invalid), 
+                "confidence": result.get("confidence")
+            })
+        return mapped_results
+
+
+    def map_rxns_from_models_in_dict(self) -> pd.DataFrame: 
+        """
+        Runs mapping for all models in self.models_to_eval_dict.
+
+        Returns:
+            pd.DataFrame: Combined DataFrame of all predictions with model identifiers.
+        """
+        all_results = []
+        for model_id, model_config in tqdm(self.models_to_eval_dict.items(), desc="Models"):
+            model_results = self.map_rxns_from_dict(model_config)
+
+            for r in model_results:
+                r["model_id"] = model_id
+            all_results.extend(model_results)
+        self.pred_results_df = pd.DataFrame(all_results)
+        return self.pred_results_df
+
+
+    def evaluate_results(self) -> dict:
+        """
+        Evaluates predictions against ground truth reactions.
+        Returns:
+            Dict[str, float]: Accuracy per model ID
+        """
+        self._validate_attrs(["models_to_eval_dict", "pred_results_df", "ref_rxns_list"])
+
+        result_dicts = {}
+
+        for model_id, _ in tqdm(self.models_to_eval_dict.items(), desc="Evaluating models"):
+            predictions = self.pred_results_df[
+                self.pred_results_df['model_id'] == model_id
+            ]['mapped_rxn'].tolist()
+
+            model_results = compare_pred_maps_w_ground_truth(
+                ground_truth_rxns=self.ref_rxns_list,
+                predicted_rxns=predictions
+            )
+            df_model_results = pd.DataFrame(model_results)
+            result_dicts[model_id] = df_model_results['success'].mean()
+
+        max_key = max(result_dicts, key=result_dicts.get)
+        max_val = result_dicts[max_key]
+        print(f"Best configuration: {max_key} → Accuracy: {round(max_val * 100, 2)}% on {len(self.ref_rxns_list)} reactions")
+
+        return result_dicts        
