@@ -515,3 +515,68 @@ def process_reaction_with_product_maps_atoms(rxn, skip_if_not_in_precursors=Fals
     for w in list(set(warnings)):
         LOGGER.warning(w)
     return joined_rxn, products_maps
+
+
+def create_rxn_smiles_from_rxn_equation(rxn_equation) -> str:
+    """
+    Converts a parsed reaction equation object into a SMILES string.
+
+    Args:
+        rxn_equation: Parsed reaction equation with reactants/products.
+
+    Returns:
+        str: Reaction SMILES string.
+    """
+    reactants = ".".join(rxn_equation.reactants)
+    products = ".".join(rxn_equation.products)
+    return f"{reactants}>>{products}"
+
+
+def compare_pred_maps_w_ground_truth(ground_truth_rxns, predicted_rxns) -> int:
+    """
+    Compares predicted and ground-truth atom maps using canonical forms.
+
+    Args:
+        ground_truth_rxns (List[str]): Ground-truth atom-mapped reactions.
+        predicted_rxns (List[str]): Predicted atom-mapped reactions.
+
+    Returns:
+        List[Dict]: Detailed comparison info for each reaction.
+    """
+    results = []
+
+    for index, (ground_truth_rxn, predicted_rxn) in enumerate(zip(ground_truth_rxns, predicted_rxns)):
+        try:
+            ground_truth_can = process_reaction_with_product_maps_atoms(ground_truth_rxn)
+            predicted_can    = process_reaction_with_product_maps_atoms(predicted_rxn)
+
+            if ground_truth_can is None or predicted_can is None:
+                raise ValueError("process_reaction_with_product_maps_atom() returned None")
+            
+            if not isinstance(ground_truth_can, tuple):
+                print(f"[GT] Invalid structure at index {index}: {ground_truth_can}")
+                raise ValueError("Expected tuple output")
+            
+            if not isinstance(predicted_can, tuple):
+                print(f"[PRED] Invalid structure at index {index}: {predicted_can}")
+                raise ValueError("Expected tuple output")
+            
+            ground_truth_can, _ = generate_atom_mapped_reaction_atoms(*ground_truth_can, canonical=True)
+            predicted_can, _    = generate_atom_mapped_reaction_atoms(*predicted_can, canonical=True)
+
+            ground_truth_str = create_rxn_smiles_from_rxn_equation(ground_truth_can)
+            predicted_str    = create_rxn_smiles_from_rxn_equation(predicted_can)
+
+            success = ground_truth_str==predicted_str
+        except Exception as e:
+            ground_truth_str, predicted_str, success = None, None, False
+            print(f"Error at index {index}: {e}")
+        results.append({
+            "index": index, 
+            "original_ground_truth_rxn": ground_truth_rxn, 
+            "original_predicted_rxn": predicted_rxn, 
+            "canonical_ground_truth_rxn": ground_truth_str, 
+            "canonical_predicted_rxn": predicted_str, 
+            "success": success, 
+        })
+    return results
