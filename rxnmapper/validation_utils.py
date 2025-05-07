@@ -45,14 +45,11 @@ def build_atom_graph(mol:Chem.Mol) -> nx.graph:
         mol: RDKit mol object
     
     Returns:
-        graph of the mol object
+        nx.Graph: graph of the mol object, with node attributes {atomic_number, formal_charge, degree, atom_map number}
+         and node attribute {bond_type}
     """
     G = nx.Graph()
-    for atom in mol.GetAtoms():
-        #if atom.HasProp("molAtomMapNumber"):
-        #    atom_map = atom.GetAtomMapNum()
-        #    atom.SetProp("atom_map", str(atom_map))
-        #    atom.ClearProp("molAtomMapNumber")       
+    for atom in mol.GetAtoms():   
         map_num = int(atom.GetProp("molAtomMapNumber") if atom.HasProp("molAtomMapNumber") else 0)
         G.add_node(atom.GetIdx(), 
                    atomic_num=atom.GetAtomicNum(), 
@@ -75,7 +72,7 @@ def get_atom_map_attr_dict(G:nx.Graph) -> Dict:
         G: NetworkX graph of a molecule, with defined "atom_map" node attribute
     
     Returns:
-        Dict: {node:atom_map}
+        Dict: {node index:atom_map}, where atom_map is 0 if not defined
     '''
     assert isinstance(G, nx.Graph), f"Expected a NetworkX graph, got {type(G)}"
     try:
@@ -102,28 +99,6 @@ def has_g_maps(G : nx.Graph) -> bool:
     atom_map_attr_dict = get_atom_map_attr_dict(G)
     
     return max(list(atom_map_attr_dict.values())) > 0
-
-
-# define function to apply 'has_g_maps' to the list of sets that is output from building [(G, mol)]
-
-# delete once we are sure that everything works correctly
-def union_of_reac_pred_gs(reacG:nx.Graph, prodG:nx.Graph) -> nx.Graph:
-    '''
-    Returns a union graph of both reactant and product graphs (reacG, prodG, respectively.)
-    Renames each node with a prefix 'R-' or 'P-' depending on its origine.
-
-    Args:
-        reacG: NetworkX graph of a reactant of the reaction
-        prodG: NetworkX graph of a product of the reaction
-
-    Returns:
-
-    '''
-
-    assert isinstance(reacG, nx.Graph), f"Expected a NetworkX graph for reacG argument, got {type(reacG)}"
-    assert isinstance(prodG, nx.Graph), f"Expected a NetworkX graph for prodG argument, got {type(prodG)}"
-
-    return nx.union(reacG, prodG, rename=('R-', 'P-'))
 
 
 def union_of_reac_prod_graphs_lists(reacG_list:List[nx.Graph], prodG_list:List[nx.Graph]) -> nx.Graph:
@@ -162,10 +137,21 @@ def union_of_reac_prod_graphs_lists(reacG_list:List[nx.Graph], prodG_list:List[n
     
     return union_G
 
+
 def create_rxn_g(unionG:nx.Graph) -> nx.Graph:
     '''
     Takes a union graph containing reactant and product graphs, with their respective node names starting with "R-"
-    or "P-" to differentiate them. Created special edges between nodes with the same atom_map attribute 
+    or "P-". Outputs a graph of the reaction where the nodes of reactants and products sharing the same atom_map 
+    number are connected by a special edge with the 'mapping' label.
+
+    Args:
+        unionG (nx.Graph):  NetworkX graph containing several non-connected graphs of reactant(s) and product(s) 
+        from a reaction with node names starting with at least a 'R-' or 'P-' prefix to ensure that each node name 
+        is unique.
+
+    Returns:
+        nx.Graph: Reaction graph with special edges connecting the reactants' and products' nodes that share the 
+        same "atom_map" attribute. The special edges have a 'mapping' label. 
     '''
 
     assert isinstance(unionG, nx.Graph), f"Expected a NetworkX graph, got {type(unionG)}"
@@ -186,6 +172,7 @@ def create_rxn_g(unionG:nx.Graph) -> nx.Graph:
                 unionG.add_edge(p, r, label='mapping')
 
     return unionG
+
 
 def remove_node_attr_from_g(G:nx.Graph, attr_name="atom_map"):
     '''
@@ -220,7 +207,7 @@ def rxn_g_from_rxn_smi(rxn_smi:str) -> nx.Graph:
 
     Returns:
         nx.Graph: A reaction graph where nodes represent atoms (from reactants and
-        products) and special edges connect atoms with shared atom-mapping indices.   
+        products) and special edges connect nodes (atoms) with shared atom-mapping indices.   
     '''
 
     assert isinstance(rxn_smi, str), f"Expected a reaction SMILES string, got {type(rxn_smi)}"
@@ -250,22 +237,51 @@ def rxn_g_from_rxn_smi(rxn_smi:str) -> nx.Graph:
 
 def define_node_edge_matches():
     '''
-    
+    Defines the node and edge matches as comparison functions for categorical attributes 
+    for evaluation of isomorphism as colored graphs within the NetworkX package.
+
+    Args:
+        None
+
+    Returns:
+            Node match (function): NetworkX comparison function for 'atomic_num', 'formal_charge', and 'degree' attributes
+            Edge match (function): NetworkX comparison function for 'bond_type', and 'label' attributes 
+
     '''
     node_match = categorical_node_match(["atomic_num", "formal_charge", "degree"], [None, None, None])
     edge_match = categorical_edge_match(["bond_type", "label"], [None, None])
-    return node_match, edge_match    
+    return node_match, edge_match
 
 
 def are_two_rxn_AM_equ(gt_smi:str, pred_smi:str) -> bool:
     '''
+    Compares two atom-mapped reaction SMILES of the same reaction and checks if both atom-mappings 
+    are equivalent (i.e. if they are chemically equivalent). Atom-mappings of tautomeric structures 
+    are not considered equivalent, as template extraction of both reaction SMILES would yield different 
+    reaction templates. 
+    Overall process:
+        - canonicalization of SMILES and atom-maps
+        - for each reaction, build NetworkX graphs of all reactants and products
+        - for each reaction, build a union graph of all reactants and products that have at least one atom-mapped atom.
+        - build reaction graphs, with edges linking nodes (i.e. atoms) sharing the same "atom_map" attribute
+        - check for isomorphism as colored graphs for both reaction graphs
     
+    Args:
+        - gt_smi (str):     Atom-mapped reaction SMILES of the ground truth mapping
+        - pred_smi (str):   Atom-mapped reaction SMILES of the predicted mapping
+
+    Returns:
+        bool:   True if both atom-mappings are equivalent, False otherwise
     '''
+
+    assert isinstance(gt_smi, str), f"Expected an atom-mapped reaction SMILES string, got {type(gt_smi)}"
+    assert isinstance(pred_smi, str), f"Expected an atom-mapped reaction SMILES string, got {type(pred_smi)}"
+
     rxn_gt_G = rxn_g_from_rxn_smi(rxn_smi=gt_smi)
     rxn_pred_G = rxn_g_from_rxn_smi(rxn_smi=pred_smi)
 
     node_match, edge_match = define_node_edge_matches()
 
-    nx.is_isomorphic(rxn_gt_G, rxn_pred_G, node_match=node_match, edge_match=edge_match)
+    return nx.is_isomorphic(rxn_gt_G, rxn_pred_G, node_match=node_match, edge_match=edge_match)
 
 
