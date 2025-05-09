@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from tqdm import tqdm
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple, Union
 from rxnmapper import BatchedMapper
 from rxnmapper.validation_utils import evaluate_atom_map_equivalence, evaluate_atom_map_equivalence_parallel
 
@@ -122,15 +122,30 @@ class BaseMappingEvaluator:
         return self.pred_results_df
 
 
-    def evaluate_results(self, chunksize: int = 10) -> dict:
+    def evaluate_results(self,
+                         chunksize: int = 10,
+                         return_detailed: bool = False
+        ) -> Union[Dict, Tuple[Dict, Dict[str, pd.DataFrame]]]:
         """
         Evaluates predictions against ground truth reactions.
+
+        Args:
+            chunksize (int):    Number of reactions per parallel chunk
+            return_detailed (bool): Whether to also return the full per-model DataFrames.
+
         Returns:
-            Dict[str, float]: Accuracy per model ID
+            If return_detailed is False:
+                Dict[str, float]: Accuracy per model ID
+            If return_detailed is True:
+                Tuple[
+                    Dict[str, float], # accuracy summary
+                    Dict[str, pd.DataFrame] # per-model detailed results    
+            ]
         """
         self._validate_attrs(["models_to_eval_dict", "pred_results_df", "ref_rxns_list"])
 
         result_dicts = {}
+        detailed_dfs = {}
 
         for model_id, _ in tqdm(self.models_to_eval_dict.items(), desc="Evaluating models"):
             predictions = self.pred_results_df[
@@ -146,9 +161,11 @@ class BaseMappingEvaluator:
             )
             df_model_results = pd.DataFrame(model_results)
             result_dicts[model_id] = df_model_results['success'].mean()
+            if return_detailed:
+                detailed_dfs[model_id] = df_model_results
 
         max_key = max(result_dicts, key=result_dicts.get)
         max_val = result_dicts[max_key]
         print(f"Best configuration: {max_key} → Accuracy: {round(max_val * 100, 2)}% on {len(self.ref_rxns_list)} reactions")
         
-        return result_dicts
+        return (result_dicts, detailed_dfs) if return_detailed else result_dicts
