@@ -42,43 +42,28 @@ class FindBestTrainingCheckpoint(BaseMappingEvaluator):
     """
     Class to find the best training checkpoint of a given model for atom-mapping performance using RXNMapper.
     """
-    
-    def __init__(self, 
-                 rxns_list:List[str], 
-                 ref_rxns_list: List[str], 
-                 head: int, 
-                 layer: int, 
-                 folder_path: str, 
-                 model_name: str = "model", 
-                 batch_size: int = 32, 
-                 model_type: str = "albert", 
-                 attention_multiplier: float = 90.0, 
-                 canonicalize: bool = True, 
-                 placeholder_for_invalid : str = ">>",
-        ):
+    def __init__(
+        self,
+        head: int,
+        layer: int,
+        folder_path: str,
+        model_name: str = "model",
+        *args,
+        **kwargs,
+    ):
         """
-            rxns_list (List[str]): List of unmapped SMILES reactions.
-            head (int): Attention head to use for predictions.
-            layer (int): Transformer layer to use for predictions.
-            folder_path (str): Path to the folder containing all the training checkpoints.
-            model_name (str): Custom name for the model (used in result keys).
-            batch_size (int): Batch size for BatchedMapper.
-            model_type (str): Type of transformer model (e.g., 'albert').
-            attention_multiplier (float): Weight multiplier for attention maps.
-            canonicalize (bool): Whether to canonicalize reactions.
-            placeholder_for_invalid (str): Placeholder for failed mappings.
+        Args:
+            heads: List of attention heads to test.
+            layers: List of layers to test.
+            model_name: Optional model name for result labeling.
+            *args, **kwargs: All arguments forwarded to BaseMappingEvaluator
         """
-        self.rxns_list = rxns_list
-        self.ref_rxns_list = ref_rxns_list
+        super().__init__(*args, **kwargs)
+
         self.head = head
         self.layer = layer
         self.folder_path = folder_path
         self.model_name = model_name
-        self.batch_size = batch_size
-        self.model_type = model_type
-        self.attention_multiplier = attention_multiplier
-        self.canonicalize = canonicalize
-        self.placeholder_for_invalid = placeholder_for_invalid
     
 
     def get_config_dict_to_eval(self) -> Dict[str, Dict[str, int]]:
