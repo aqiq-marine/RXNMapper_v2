@@ -140,7 +140,9 @@ __pycache__/
 rxnmapper_from_scratch/
 rxnmapper/data/RXNMapperData/Training/uspto_all_reactions_training.txt
 rxnmapper/data/RXNMapperData/USPTO_remapped
-
+rxnmapper/configs/
+rxnmapper/experiments/V1_benchmarks/*.json
+rxnmapper/rxnmapper/models/transformers/alberta_uspto_*
 
 Finetuning_attn_head_experiments
 wandb

@@ -2,6 +2,26 @@
 requires = ["setuptools >= 59.2.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "rxnmapper-v2"
+version = "0.2.0"
+description = "Improved RXNMapper-based atom-mapping pipeline"
+requires-python = ">=3.8"
+dependencies = [
+    "rdkit",
+    "transformers==4.46.3",
+    "pandas",
+    "scikit-learn",
+    "datasets",
+    "tqdm",
+    "rapidfuzz",
+    "matplotlib",
+    "scipy",
+    "atommap-eval @ git+https://github.com/yvsgrndjn/atommap_eval.git@v0.4.0"
+]
+
+dynamic = ["readme", "license", "authors", "classifiers", "optional-dependencies"]
+
 [tool.mypy]
 check_untyped_defs = true
 plugins = [

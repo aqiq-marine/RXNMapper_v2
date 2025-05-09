@@ -59,7 +59,7 @@ results = list(rxn_mapper.map_reactions_with_info(rxns))  # results as dictionar
 To learn more see the [examples](./examples).
 
 ## Data 
-
+### Original IBM data (USPTO 2.8M reactions + USPTO-50K)
 1. Data can be found at: https://ibm.box.com/v/RXNMapperData
 2. Download the files and place them in the data-directory
 3. Unzip the zip file: 
@@ -81,6 +81,34 @@ cd ..
 ```bash
 python scripts/process_data.py
  ```
+
+### Localmapper USPTO version (1.06M reactions)
+1. Data can be found at: figshare <https://figshare.com/articles/dataset/USPTO_reaction_datasets_remapped_by_LocalMapper/25046471/1>
+2. Download the files and place them in the newly created data/USPTO_FULL-directory
+```bash
+cd data
+mkdir USPTO_FULL
+```
+3. Unzip the zip file
+```bash
+cd USPTO_FULL
+unzip USPTO_full_and_50K_remapped.zip
+rm USPTO_full_and_50K_remapped.zip
+cd ..
+```
+4. Preprocess the data:
+```bash
+python scripts/remove_mapping.py
+```
+5. Obtain the Golden dataset from Localmapper <https://github.com/snu-micc/LocalMapper/tree/main/data/Golden> and save it under data/Golden/test_data.csv
+
+6. Go to data/DataCleaning/cleaning_dataset.ipynb and get the cleaned versions of USPTO-49K (test set) and the validation set (USPTO-1K)
+
+7. Process USPTO (1.06M rxns) for training
+```bash
+python scripts/process_localmapper_data.py
+```
+
 <!-- 
 
 ## Validating the model:
