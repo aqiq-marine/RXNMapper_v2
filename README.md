@@ -4,7 +4,7 @@ Enable robust atom mapping on valid reaction SMILES. The atom-mapping informatio
 
 ## What this version includes: 
   1. Training scripts
-  2. Evaluation Scripts
+  2. Evaluation Scripts based on reaction graph isomorphism
   3. New Datasets :) 
   4. And other experiments. 
 
