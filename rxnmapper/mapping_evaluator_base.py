@@ -14,7 +14,7 @@ class BaseMappingEvaluator:
                  ref_rxns_list: Optional[List[str]] = None, 
                  model_path: Optional[str] = None, 
                  model_type: str = 'albert', 
-                 batch_size: int = 32, 
+                 batch_size: int = 1, 
                  attention_multiplier: float = 90.0, 
                  canonicalize: bool = True, 
                  placeholder_for_invalid: str = ">>", 
@@ -122,7 +122,7 @@ class BaseMappingEvaluator:
         return self.pred_results_df
 
 
-    def evaluate_results(self) -> dict:
+    def evaluate_results(self, chunksize: int = 10) -> dict:
         """
         Evaluates predictions against ground truth reactions.
         Returns:
@@ -142,7 +142,7 @@ class BaseMappingEvaluator:
                 predicted_rxns=predictions,  
                 canonicalize=self.canonical_eval,
                 num_workers=self.num_workers,
-                chunksize=10,
+                chunksize=chunksize,
             )
             df_model_results = pd.DataFrame(model_results)
             result_dicts[model_id] = df_model_results['success'].mean()
