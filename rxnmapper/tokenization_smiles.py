@@ -7,6 +7,8 @@ import logging
 import os
 import re
 
+from collections import Counter
+from typing import List, Dict, Optional
 from transformers import BertTokenizer
 
 from .smiles_utils import SMI_REGEX_PATTERN
@@ -157,3 +159,34 @@ def load_vocab(vocab_file):
         token = token.rstrip("\n")
         vocab[token] = index
     return vocab
+
+# additonal functions for vocabulary handling
+#
+def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str], min_freq:int=1)->List[str]:
+    '''
+    Build a vocabulary based on the BasicSmilesTokenizer, using smiles regex pattern to tokenize smiles_list
+    '''
+    tokenizer = BasicSmilesTokenizer()
+    counter = Counter()
+    
+    for el in smiles_list:
+        tokens = tokenizer.tokenize(el)
+        counter.update(tokens)
+
+    tokens = sorted({tok for tok, freq in counter.items() if freq >= min_freq})
+    if special_tokens is None:
+        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"]
+
+    return special_tokens + tokens
+
+
+def merge_vocabs(vocab1:List[str], vocab2:List[str], special_tokens=None) -> List:
+    '''
+    
+    '''
+    merged = set(vocab1) | set(vocab2)
+    if special_tokens is None:
+        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"]
+    merged = sorted(set(merged) - set(special_tokens))
+
+    return special_tokens + merged
