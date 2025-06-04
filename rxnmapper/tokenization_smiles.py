@@ -162,7 +162,7 @@ def load_vocab(vocab_file):
 
 # additonal functions for vocabulary handling
 #
-def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str], min_freq:int=1)->List[str]:
+def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str]=None, min_freq:int=1)->List[str]:
     '''
     Build a vocabulary based on the BasicSmilesTokenizer, using smiles regex pattern to tokenize smiles_list
     '''
@@ -180,9 +180,17 @@ def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str], min_f
     return special_tokens + tokens
 
 
+def list_to_ord_dict(tok_list:List)->collections.OrderedDict:
+    vocab = collections.OrderedDict()
+    for index, token in enumerate(tok_list):
+        token = token.rstrip("\n")
+        vocab[token] = index
+    return vocab
+
+
 def merge_vocabs(vocab1:List[str], vocab2:List[str], special_tokens=None) -> List:
     '''
-    
+    Merge two lists of tokens
     '''
     merged = set(vocab1) | set(vocab2)
     if special_tokens is None:
@@ -190,3 +198,33 @@ def merge_vocabs(vocab1:List[str], vocab2:List[str], special_tokens=None) -> Lis
     merged = sorted(set(merged) - set(special_tokens))
 
     return special_tokens + merged
+
+
+def merge_ordered_vocabs(vocab1: collections.OrderedDict, vocab2: collections.OrderedDict) -> collections.OrderedDict:
+    '''
+    Merge two vocabs with OrderedDict format
+    '''
+    merged = collections.OrderedDict(vocab1)
+    for token in vocab2:
+        if token not in merged:
+            merged[token] = len(merged)
+    return merged
+
+
+def save_vocabulary(vocab:collections.OrderedDict, save_path:str):
+    """Save a tokenizer vocabulary to a file. Same as SmilesTokenizer method"""
+    index = 0
+    vocab_file = save_path
+    with open(vocab_file, "w", encoding="utf-8") as writer:
+        for token, token_index in sorted(vocab.items(), key=lambda kv: kv[1]):
+            if index != token_index:
+                logger.warning(
+                    "Saving vocabulary to {}: vocabulary indices are not consecutive."
+                    " Please check that the vocabulary is not corrupted!".format(
+                        vocab_file
+                    )
+                )
+                index = token_index
+            writer.write(token + "\n")
+            index += 1
+    return (vocab_file,)
