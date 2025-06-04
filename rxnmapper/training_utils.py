@@ -26,7 +26,8 @@ class Config:
     dataset_name: str
     checkpoint_path: str
     dataset_path: str
-
+    preprocess_dataset: bool
+    
     # Vocab arguments:
     auto_vocab: bool
     vocab_output_path: str
