@@ -11,14 +11,15 @@ Example run of training:
 
 python scripts/train_mlm_alberta.py -c configs/training_baseline.yaml
 """
-
+import pandas as pd
 from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments
 from datasets import load_dataset
 from transformers import DataCollatorForLanguageModeling
-from rxnmapper.tokenization_smiles import SmilesTokenizer
+from rxnmapper.tokenization_smiles import SmilesTokenizer, build_vocab_from_data, merge_ordered_vocabs, list_to_ord_dict, load_vocab, save_vocabulary
 import click
 import yaml
 from rxnmapper.training_utils import parse_config
+from rxnmapper.preprocess_utils import preprocess_dataset
 
 
 @click.command()
@@ -42,14 +43,65 @@ def main(config_path: str):
     # Setup model:
     model_config = AlbertConfig(**config.alberta_config)
     model = AlbertForMaskedLM(model_config)
+    
+    # vocab path
+    default_vocab_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+    final_vocab_path = config.vocab_output_path
+    
+    if config.auto_vocab: ## Create a vocab adapted to the new data + merge to the default
+        print("Auto-vocab enabled: building vocab from data...")
+        dataset = load_dataset(
+            "csv",
+            config.dataset_path,
+            split="train",
+        )
+        smiles_list = dataset['rxn']
+        new_vocab = build_vocab_from_data(smiles_list)
+        new_vocab_ord_dict = list_to_ord_dict(new_vocab)
 
+        default_vocab = load_vocab(default_vocab_path)
+        merged_vocab = merge_ordered_vocabs(default_vocab, new_vocab_ord_dict)
+
+        _ = save_vocabulary(merged_vocab, final_vocab_path)
+        vocab_path = final_vocab_path
+
+    else:
+        vocab_path = default_vocab_path
+    
     # Setup tokenizer:
-    vocab_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"  # Can stay hard coded for now
     tokenizer = SmilesTokenizer(
         vocab_path,
         model_max_length=model_config.max_position_embeddings,
         padding="longest",
     )
+
+    # Preprocessing of the dataset if needed
+    if config.preprocess_dataset: ## To tokenize each reaction and remove too long data points
+        print('Preprocessing enabled: tokenizing and filtering reactions for max model size...')
+        if "dataset" not in locals():
+            dataset = load_dataset(
+                "csv",
+                config.dataset_path,
+                split="train",
+            )
+        if 'rxn' not in dataset.column_names:
+            raise ValueError(f"Expected 'rxn' column in dataset, but found: {dataset.column_names}")
+        
+        tok_dataset = preprocess_dataset(dataset, tokenizer)
+
+        max_input_size = model_config.max_position_embeddings - 2 # account for [CLS] and [SEP]
+
+        def length_filter(example):
+            return (len(example["rxn_tokenized"].split())) < max_input_size
+
+        filtered_dataset = tok_dataset.filter(length_filter)
+
+        config.dataset_path = config.dataset_path.replace(
+            '.csv',
+            f'_preprocessed_{model_config.max_position_embeddings}.csv'
+            )
+        filtered_dataset.to_csv(config.dataset_path)
+
 
     # Tokenize the dataset with truncation logic
     def tokenize_function(examples):
@@ -57,34 +109,46 @@ def main(config_path: str):
         tokenized = tokenizer(examples["rxn"], truncation=True)
         return tokenized
 
-    # Dataset setup
-    if config.dataset_name == "USPTO":
-        dataset_path = f"data/RXNMapperData/Training/uspto_all_reactions_{model_config.max_position_embeddings}_max_input_len.csv"
-    elif config.dataset_name == "USPTO_1065k":
-        dataset_path = f"data/USPTO_FULL/uspto_1065k_{model_config.max_position_embeddings}_max_input_len.csv"
-    elif config.dataset_name == "full_pretraining":
-        dataset_path = "data/full_pretraining_data.csv"
-    elif config.dataset_name == "uspto_cyclisation":
-        dataset_path = "data/uspto_cyclisation_pretraining_data.csv"
-    elif config.dataset_name == "uspto_rearrangement":
-        dataset_path = "data/uspto_rearrangement_pretraining_data.csv"
-    elif config.dataset_name == "cyclisation_101080":
-        dataset_path = "data/Cyclisation/processed/train.csv"
-    elif config.dataset_name == "rearrangement_101080":
-        dataset_path = "data/Rearrangement/processed/train.csv"
+    # load the dataset if it does not exist yet
+    if "dataset" not in locals():
+        dataset = load_dataset(
+            "csv",
+            config.dataset_path,
+            split="train",
+        )
+    if 'rxn' not in dataset.column_names:
+        raise ValueError(f"Expected 'rxn' column in dataset, but found: {dataset.column_names}")
 
-    elif config.dataset_name == "cyclisation_5050":
-        dataset_path = "data/Cyclisation/processed_50-50_train_test/train.csv"
 
-    elif config.dataset_name == "rearrangement_5050":
-        dataset_path = "data/Rearrangement/processed_50-50_train_test/train.csv"
-    else:
-        raise ValueError(f"{config.dataset_name} Dataset not supported yet")
+
+    ## Dataset setup
+    #if config.dataset_name == "USPTO":
+    #    dataset_path = f"data/RXNMapperData/Training/uspto_all_reactions_{model_config.max_position_embeddings}_max_input_len.csv"
+    #elif config.dataset_name == "USPTO_1065k":
+    #    dataset_path = f"data/USPTO_FULL/uspto_1065k_{model_config.max_position_embeddings}_max_input_len.csv"
+    #elif config.dataset_name == "full_pretraining":
+    #    dataset_path = "data/full_pretraining_data.csv"
+    #elif config.dataset_name == "uspto_cyclisation":
+    #    dataset_path = "data/uspto_cyclisation_pretraining_data.csv"
+    #elif config.dataset_name == "uspto_rearrangement":
+    #    dataset_path = "data/uspto_rearrangement_pretraining_data.csv"
+    #elif config.dataset_name == "cyclisation_101080":
+    #    dataset_path = "data/Cyclisation/processed/train.csv"
+    #elif config.dataset_name == "rearrangement_101080":
+    #    dataset_path = "data/Rearrangement/processed/train.csv"
+    #
+    #elif config.dataset_name == "cyclisation_5050":
+    #    dataset_path = "data/Cyclisation/processed_50-50_train_test/train.csv"
+    #
+    #elif config.dataset_name == "rearrangement_5050":
+    #    dataset_path = "data/Rearrangement/processed_50-50_train_test/train.csv"
+    #else:
+    #    raise ValueError(f"{config.dataset_name} Dataset not supported yet")
 
     print(f"Loading the {config.dataset_name} dataset...")
     dataset = load_dataset(
         "csv",
-        data_files=dataset_path,
+        data_files=config.dataset_path,
     )
 
     # Tokenize the dataset
