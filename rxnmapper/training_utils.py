@@ -25,6 +25,11 @@ class Config:
     # Basic params:
     dataset_name: str
     checkpoint_path: str
+    dataset_path: str
+
+    # Vocab arguments:
+    auto_vocab: bool
+    vocab_output_path: str
 
     # Model config:
     alberta_config: dict
