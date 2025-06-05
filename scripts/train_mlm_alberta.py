@@ -52,7 +52,7 @@ def main(config_path: str):
         print("Auto-vocab enabled: building vocab from data...")
         dataset = load_dataset(
             "csv",
-            config.dataset_path,
+            data_files=config.dataset_path,
             split="train",
         )
         smiles_list = dataset['rxn']
@@ -81,7 +81,7 @@ def main(config_path: str):
         if "dataset" not in locals():
             dataset = load_dataset(
                 "csv",
-                config.dataset_path,
+                data_files=config.dataset_path,
                 split="train",
             )
         if 'rxn' not in dataset.column_names:
@@ -113,7 +113,7 @@ def main(config_path: str):
     if "dataset" not in locals():
         dataset = load_dataset(
             "csv",
-            config.dataset_path,
+            data_files=config.dataset_path,
             split="train",
         )
     if 'rxn' not in dataset.column_names:
@@ -149,6 +149,7 @@ def main(config_path: str):
     dataset = load_dataset(
         "csv",
         data_files=config.dataset_path,
+        split="train",
     )
 
     # Tokenize the dataset
