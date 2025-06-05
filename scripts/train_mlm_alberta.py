@@ -125,7 +125,7 @@ def main(config_path: str):
     
     # Tokenize the dataset
     print("Tokenizing dataset...")
-    dataset = dataset.map(
+    tok_dataset = dataset.map(
         tokenize_function,
         batched=True,
         num_proc=24,
@@ -168,7 +168,7 @@ def main(config_path: str):
         model=model,
         args=training_args,
         data_collator=data_collator,
-        train_dataset=dataset["rxn"],
+        train_dataset=tok_dataset,
     )
 
     # Train the model
