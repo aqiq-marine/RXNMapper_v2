@@ -100,17 +100,12 @@ def main(config_path: str):
             '.csv',
             f'_preprocessed_{model_config.max_position_embeddings}.csv'
             )
-        filtered_dataset.to_csv(config.dataset_path)
-
-
-    # Tokenize the dataset with truncation logic
-    def tokenize_function(examples):
-        # Tokenize the SMILES strings
-        tokenized = tokenizer(examples["rxn"], truncation=True)
-        return tokenized
+        filtered_dataset.to_csv(config.dataset_path) # save for later use
+        dataset = filtered_dataset # apply next calculations on the filtered version
 
     # load the dataset if it does not exist yet
     if "dataset" not in locals():
+        print(f"Loading the {config.dataset_name} dataset...")
         dataset = load_dataset(
             "csv",
             data_files=config.dataset_path,
@@ -119,39 +114,15 @@ def main(config_path: str):
     if 'rxn' not in dataset.column_names:
         raise ValueError(f"Expected 'rxn' column in dataset, but found: {dataset.column_names}")
 
-
-
-    ## Dataset setup
-    #if config.dataset_name == "USPTO":
-    #    dataset_path = f"data/RXNMapperData/Training/uspto_all_reactions_{model_config.max_position_embeddings}_max_input_len.csv"
-    #elif config.dataset_name == "USPTO_1065k":
-    #    dataset_path = f"data/USPTO_FULL/uspto_1065k_{model_config.max_position_embeddings}_max_input_len.csv"
-    #elif config.dataset_name == "full_pretraining":
-    #    dataset_path = "data/full_pretraining_data.csv"
-    #elif config.dataset_name == "uspto_cyclisation":
-    #    dataset_path = "data/uspto_cyclisation_pretraining_data.csv"
-    #elif config.dataset_name == "uspto_rearrangement":
-    #    dataset_path = "data/uspto_rearrangement_pretraining_data.csv"
-    #elif config.dataset_name == "cyclisation_101080":
-    #    dataset_path = "data/Cyclisation/processed/train.csv"
-    #elif config.dataset_name == "rearrangement_101080":
-    #    dataset_path = "data/Rearrangement/processed/train.csv"
-    #
-    #elif config.dataset_name == "cyclisation_5050":
-    #    dataset_path = "data/Cyclisation/processed_50-50_train_test/train.csv"
-    #
-    #elif config.dataset_name == "rearrangement_5050":
-    #    dataset_path = "data/Rearrangement/processed_50-50_train_test/train.csv"
-    #else:
-    #    raise ValueError(f"{config.dataset_name} Dataset not supported yet")
-
-    print(f"Loading the {config.dataset_name} dataset...")
-    dataset = load_dataset(
-        "csv",
-        data_files=config.dataset_path,
-        split="train",
-    )
-
+    # Define tokenization with truncation logic
+    def tokenize_function(example):
+        # Tokenize the SMILES strings
+        return tokenizer(
+            example["rxn"],
+            truncation=True,
+            padding=False,
+            )
+    
     # Tokenize the dataset
     print("Tokenizing dataset...")
     dataset = dataset.map(
