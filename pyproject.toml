@@ -17,6 +17,7 @@ dependencies = [
     "rapidfuzz",
     "matplotlib",
     "scipy",
+    "numpy>=1.24.3,<2.0",
     "atommap-eval @ git+https://github.com/yvsgrndjn/atommap_eval.git@v0.4.0"
 ]
 
