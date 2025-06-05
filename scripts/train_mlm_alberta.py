@@ -75,6 +75,25 @@ def main(config_path: str):
         padding="longest",
     )
 
+    # Check that vocab size matches between vocab and model config
+    if model_config.vocab_size != tokenizer.vocab_size:
+        print(f"Vocab size in model ({model_config.vocab_size}) " + 
+               "not the same size as " +
+               f"tokenizer ({tokenizer.vocab_size}), using the tokenizers'...")
+        model_config.vocab_size = tokenizer.vocab_size
+        model = AlbertForMaskedLM(model_config)
+        print(f"Model updated to vocab size of {model_config.vocab_size}...")
+
+    ## Load model from checkpoint:
+    if config.checkpoint_path:
+        print(f"Loading model from checkpoint: {config.checkpoint_path}")
+        model = AlbertForMaskedLM.from_pretrained(config.checkpoint_path)
+        
+        if tokenizer.vocab_size != model.config.vocab_size:
+            print(f"Resizing model embeddings from {model.config.vocab_size} to {tokenizer.vocab_size}")
+            model.resize_token_embeddings(tokenizer.vocab_size)
+
+
     # Preprocessing of the dataset if needed
     if config.preprocess_dataset: ## To tokenize each reaction and remove too long data points
         print('Preprocessing enabled: tokenizing and filtering reactions for max model size...')
@@ -130,11 +149,6 @@ def main(config_path: str):
         batched=True,
         num_proc=24,
     )
-
-    # Load model from checkpoint:
-    if config.checkpoint_path:
-        print(f"Loading model from checkpoint: {config.checkpoint_path}")
-        model = AlbertForMaskedLM.from_pretrained(config.checkpoint_path)
 
     # Setup the MLM Data collator - This automatically masks tokens within the data-loader
     data_collator = DataCollatorForLanguageModeling(
