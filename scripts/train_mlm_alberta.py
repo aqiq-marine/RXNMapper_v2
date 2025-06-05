@@ -197,7 +197,7 @@ def main(config_path: str):
         model=model,
         args=training_args,
         data_collator=data_collator,
-        train_dataset=dataset["train"],
+        train_dataset=dataset["rxn"],
     )
 
     # Train the model
