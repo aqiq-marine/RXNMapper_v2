@@ -11,6 +11,7 @@ Example run of training:
 
 python scripts/train_mlm_alberta.py -c configs/training_baseline.yaml
 """
+import os
 import pandas as pd
 from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments
 from datasets import load_dataset
@@ -46,6 +47,16 @@ def main(config_path: str):
     
     # vocab path
     default_vocab_path = "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt"
+    if config.vocab_path in [None, "", "DEFAULT"]:
+        vocab_path = default_vocab_path
+        print(f"Using default vocab path: {default_vocab_path}")
+    else:
+        vocab_path = config.vocab_path
+        print(f"Using user-provided vocab_path: {vocab_path}")
+
+    if not os.path.isfile(vocab_path):
+        raise FileNotFoundError(f"Vocab file not found at {vocab_path}")
+
     final_vocab_path = config.vocab_output_path
     
     if config.auto_vocab: ## Create a vocab adapted to the new data + merge to the default
@@ -59,14 +70,12 @@ def main(config_path: str):
         new_vocab = build_vocab_from_data(smiles_list)
         new_vocab_ord_dict = list_to_ord_dict(new_vocab)
 
-        default_vocab = load_vocab(default_vocab_path)
+        default_vocab = load_vocab(vocab_path)
         merged_vocab = merge_ordered_vocabs(default_vocab, new_vocab_ord_dict)
 
         _ = save_vocabulary(merged_vocab, final_vocab_path)
         vocab_path = final_vocab_path
 
-    else:
-        vocab_path = default_vocab_path
     
     # Setup tokenizer:
     tokenizer = SmilesTokenizer(
