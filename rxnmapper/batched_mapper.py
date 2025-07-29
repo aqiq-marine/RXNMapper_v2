@@ -29,6 +29,7 @@ class BatchedMapper:
         model_type: str = "albert",
         canonicalize: bool = False,
         placeholder_for_invalid: str = ">>",
+        vocab_path: Optional[str] = None,
     ):
         """
         Args:
@@ -55,6 +56,7 @@ class BatchedMapper:
                 layers=[layer],
                 model_type=model_type,
                 attention_multiplier=attention_multiplier,
+                vocab_path=vocab_path,
             ),
         )
         self.batch_size = batch_size
