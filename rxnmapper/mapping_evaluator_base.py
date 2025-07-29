@@ -14,6 +14,7 @@ class BaseMappingEvaluator:
                  ref_rxns_list: Optional[List[str]] = None, 
                  model_path: Optional[str] = None, 
                  model_type: str = 'albert', 
+                 vocab_path: Optional[str] = None, 
                  batch_size: int = 1, 
                  attention_multiplier: float = 90.0, 
                  canonicalize: bool = True, 
@@ -39,6 +40,7 @@ class BaseMappingEvaluator:
         self.ref_rxns_list = ref_rxns_list
         self.model_path = model_path
         self.model_type = model_type
+        self.vocab_path = vocab_path
         self.batch_size = batch_size
         self.attention_multiplier = attention_multiplier
         self.canonicalize = canonicalize
@@ -78,6 +80,7 @@ class BaseMappingEvaluator:
 
         model_path = config["model_path"] if "model_path" in config else self.model_path
         model_type = config["model_type"] if "model_type" in config else self.model_type
+        vocab_path = config["vocab_path"] if "vocab_path" in config else self.vocab_path
 
         mapper = BatchedMapper(
             batch_size=self.batch_size, 
@@ -88,6 +91,7 @@ class BaseMappingEvaluator:
             attention_multiplier=self.attention_multiplier, 
             canonicalize=self.canonicalize, 
             placeholder_for_invalid=self.placeholder_for_invalid, 
+            vocab_path = vocab_path
         )
 
         mapped_results = []
@@ -127,7 +131,8 @@ class BaseMappingEvaluator:
                          return_detailed: bool = False
         ) -> Union[Dict, Tuple[Dict, Dict[str, pd.DataFrame]]]:
         """
-        Evaluates predictions against ground truth reactions.
+        Evaluates predictions against ground truth reactions. Can only be run after 
+        `map_rxns_from_models_in_dict`.
 
         Args:
             chunksize (int):    Number of reactions per parallel chunk
