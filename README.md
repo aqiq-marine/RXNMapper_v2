@@ -178,10 +178,13 @@ TO be cleaned at a later point:
 
 Head over to the Experiments Directory, and have a look at the different scripts which can be used: 
 
-1. Run Benchmarks on V1 model
-2. Train Model from scratch
-3. Finetune a model with MLM
-4. Finetune a model with a Custom Atom-Mapping loss function. 
+1. Train Model from scratch
+2. Find the best head/layer/checkpoint
+
+(old, see if we keep)
+i. Run Benchmarks on V1 model
+ii. Finetune a model with MLM
+iii. Finetune a model with a Custom Atom-Mapping loss function. 
 
 
 <!-- # Current Benchmarks:
@@ -281,28 +284,11 @@ RXNMapper V1 + MLM finetuning on Rearrangement-only Data (57,783):
 
 - 92.1% -->
 
-
-
-
-# Current ISSUES: 
-
-- Processing of Atom maps has BUG for the Rearrangement RXNs - TO FIX
-- Would like to see WHERE the atom map is wrong - Is it on the reacting atoms or scattered across reaction.
-- Clean code so easily reproducible
-
-
-
 ## Future experiments: 
 
 1. Run with randomised smiles -> Larger Levenshtein distance
 2. Run with LOADS of Extra cyclisation and rearrangement reactions
 3. Finetune on Reacting atoms only -> These could be the hardest for RXNMapper to map. 
-
-
-
-
-
-
 
 
 ## Citation
