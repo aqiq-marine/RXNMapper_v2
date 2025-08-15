@@ -7,14 +7,14 @@ from rxnmapper.mapping_evaluator_base import BaseMappingEvaluator
 from rxnmapper.validation_utils import evaluate_atom_map_equivalence_parallel
 
 
-GRID_PATH = "../configs/grid_combinations.json"
+GRID_PATH = "configs/grid_combinations.json"
 
 def load_validation_set(path):
     with open(path, "r") as f:
         data = json.load(f)
     return list(data["rxn"].values()), list(data["rxn_atom_mapped"].values())
 
-def main(model_name, val_set_path, chunk_start, chunk_end):
+def main(model_name, val_set_path, vocab_path, chunk_start, chunk_end):
     with open(GRID_PATH, "r") as f:
         grid = json.load(f)
 
@@ -24,7 +24,7 @@ def main(model_name, val_set_path, chunk_start, chunk_end):
     for i in range(chunk_start, chunk_end):
         config = grid[i]
 
-        model_path = f"../rxnmapper/models/transformers/{model_name}/checkpoint-{config['checkpoint_number']}/"
+        model_path = f"trained_models/{model_name}/checkpoint-{config['checkpoint_number']}/"
         if not Path(model_path).exists():
             print(f"Skipping: model checkpoint not found at {model_path}")
             continue
@@ -34,13 +34,14 @@ def main(model_name, val_set_path, chunk_start, chunk_end):
             ref_rxns_list=ref_rxns_list,
             model_path=model_path,
             model_type="albert",
+            vocab_path=vocab_path,
             batch_size=24,
         )
 
         config.update({
             "model_folder_name": model_name,
             "valid_set_name": val_set_name,
-            "output_dir": "../data/results/grid_search"
+            "output_dir": "data/results/grid_search"
         })
 
         mapped_rxns = evaluator.map_rxns_from_dict(config=config)
@@ -58,7 +59,7 @@ def main(model_name, val_set_path, chunk_start, chunk_end):
             chunksize=24
         )
         df_model_results = pd.DataFrame(model_results)
-        score = round(df_model_results['success'].mean(), 3)
+        score = round(df_model_results['success'].mean(), 6)
 
         # Save result
         output_dir = Path(config["output_dir"]) / model_name / val_set_name
@@ -75,13 +76,14 @@ def main(model_name, val_set_path, chunk_start, chunk_end):
              
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
-        print("Usage: python evaluate_model_config.py <model_name> <val_set_path> <chunk_start> <chunk_end>")
+    if len(sys.argv) != 6:
+        print("Usage: python evaluate_model_config.py <model_name> <val_set_path> <vocab_path> <chunk_start> <chunk_end>")
         sys.exit(1)
 
     model_name = sys.argv[1]
     val_set_path = sys.argv[2]
-    chunk_start = int(sys.argv[3])
-    chunk_end = int(sys.argv[4])
+    vocab_path = sys.argv[3]
+    chunk_start = int(sys.argv[4])
+    chunk_end = int(sys.argv[5])
 
-    main(model_name, val_set_path, chunk_start, chunk_end)
+    main(model_name, val_set_path, vocab_path, chunk_start, chunk_end)
