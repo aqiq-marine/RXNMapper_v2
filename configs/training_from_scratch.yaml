@@ -1,6 +1,16 @@
 # Basic Params:
 dataset_name: "USPTO"
-checkpoint_path: ""
+checkpoint_path: "/absolute/path/to/checkpoint/folder"
+dataset_path: "/absolute/path/to/csv/of/dataset"
+resume_from_checkpoint: false 
+
+# Preprocessing argument (i.e. does the dataset need to be tokenised and filtered for sequence length)
+preprocess_dataset: false
+
+# Vocab arguments (i.e. do we want to build a new vocab based on the new data + merge it with the USPTO vocab):
+vocab_path: "" # if custom vocab other than default
+auto_vocab: false
+vocab_output_path:
 
 # Model arguments:
 alberta_config: {
@@ -72,9 +82,9 @@ layers: [10]  # Correct Layer will also have to be found.
 mlm_probability: 0.15
 
 # Training parameters:
-output_dir: "trained_models/alberta_full_pretraining"
-logging_dir: "logs/alberta_full_pretraining"
-run_name: "alberta_full_pretraining"
+output_dir: "trained_models/model_name"
+logging_dir: "logs/model_name"
+run_name: "model_name"
 
 
 learning_rate: 0.0001
@@ -89,14 +99,13 @@ save_strategy: "steps"
 save_step: 10_000
 save_total_limit: 150
 
-logging_strategy: "steps"
 logging_steps: 500
 logging_first_step: True
-report_to: ["tensorboard"]  # ["wandb"]
+report_to:
+  - tensorboard # [], ["wandb"]
 
 eval_strategy: "no"
 save_only_model: True
-
 
 
 
