@@ -1,7 +1,7 @@
 import json
 
 grid = []
-checkpoints = list(range(0,1500001, 10000))
+checkpoints = list(range(10000,1500001, 10000))
 layers = [9, 10, 11]
 heads = range(8)
 
@@ -14,5 +14,5 @@ for ckpt in checkpoints:
                 "head": head
             })
 
-with open("configs/grid_combinations.json", "w") as f:
+with open("../configs/grid_combinations.json", "w") as f:
     json.dump(grid, f, indent=2)
