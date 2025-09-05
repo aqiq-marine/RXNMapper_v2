@@ -1,49 +1,120 @@
 [build-system]
-requires = ["setuptools >= 59.2.0", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "rxnmapper-v2"
 version = "0.2.0"
 description = "Improved RXNMapper-based atom-mapping pipeline"
+readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [
-    "rdkit",
-    "transformers==4.46.3",
-    "pandas",
-    "scikit-learn",
-    "datasets",
-    "tqdm",
-    "rapidfuzz",
-    "matplotlib",
-    "scipy",
-    "numpy>=1.20,<1.24",
-    "atommap-eval @ git+https://github.com/yvsgrndjn/atommap_eval.git@v0.4.0"
+license = { text = "MIT" }
+authors = [
+  { name = "Yves Grandjean", email = "yves.grandjean@unibe.ch" },
+  { name = "Sacha Raffaud"}
 ]
 
-dynamic = ["readme", "license", "authors", "classifiers", "optional-dependencies"]
+dependencies = [
+  "numpy>=1.20,<1.24",
+  "pandas>=1.0.3",
+  "scipy>=1.4.1",
+  "scikit-learn",
+  "matplotlib",
+  "tqdm",
+  "rapidfuzz",
+  "datasets>=3.1.0",
+  "transformers==4.46.3",
+  "torch>=1.5.0,<2.5",
+  "rdkit>=2024.3.5",
+  "ipykernel>=6.29.5",
+  "wandb>=0.18.7",
+  "rxn-chem-utils>=1.0.3",
+  "atommap-eval @ git+https://github.com/yvsgrndjn/atommap_eval.git@v0.4.0"
+]
+
+classifiers = [
+  "Operating System :: OS Independent",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.optional-dependencies]
+# Dev tools / docs / release
+dev = [
+  "black>=22.1.0",
+  "bump2version>=1.0.1",
+  "flake8>=3.7.9",
+  "isort>=5.10.0",
+  "mypy>=0.910",
+  "pytest>=5.4.1",
+  "sphinx==2.2.1",
+  "sphinx-rtd-theme==0.4.3",
+  "twine==3.1.1",
+  "types-setuptools>=62.6.0",
+]
+
+# Optional RDKit install variants (mirrors your previous extras)
+rdkit = [
+  'rdkit-pypi>=2021.3.2; python_version < "3.7"',
+  'rdkit>=2022.3.4; python_version >= "3.7"',
+]
+
+# Convenience meta-extra (everything)
+all = ["rxnmapper-v2[dev,rdkit]"]
+
+[project.urls]
+Homepage = "https://github.com/yvsgrndjn/RXNMapper_v2"
+Repository = "https://github.com/yvsgrndjn/RXNMapper_v2"
+
+# ---- Tooling configs (unchanged) -------------------------------------------
 
 [tool.mypy]
 check_untyped_defs = true
-plugins = [
-    "numpy.typing.mypy_plugin",
-]
+plugins = ["numpy.typing.mypy_plugin"]
 
 [[tool.mypy.overrides]]
 module = [
-    "pandas.*",
-    "rdkit.*",
-    "scipy.*",
-    "tqdm.*",
-    "transformers.*",
-    "datasets.*",
-    "matplotlib.*",
-    "ipykernel.*",
-    "datasets.*",
-    "scikit-learn.*",
-    "rapidfuzz.*",
+  "pandas.*",
+  "rdkit.*",
+  "scipy.*",
+  "tqdm.*",
+  "transformers.*",
+  "datasets.*",
+  "matplotlib.*",
+  "ipykernel.*",
+  "datasets.*",
+  "scikit-learn.*",
+  "rapidfuzz.*",
 ]
 ignore_missing_imports = true
 
 [tool.isort]
 profile = "black"
+
+[tool.flake8]
+extend-ignore = "E203,E501"
+
+# ---- Setuptools package discovery & data -----------------------------------
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+# No src/ layout in your current config; this discovers top-level packages.
+where = ["."]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+# Ship your trained models + typing marker
+"rxnmapper" = [
+  "models/transformers/albert_heads_8_uspto_all_1310k/*",
+  "py.typed",
+]
