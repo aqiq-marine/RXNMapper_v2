@@ -168,3 +168,23 @@ alberta_full_pt_728000
 
 Checking_reactive_atoms.ipynb
 processed_50-50_train_test/
+
+# configs
+configs/config_calc_levenshtein_tanimoto.py
+configs/finetuning_baseline_AtomMaps.yaml
+configs/finetuning_baseline_MLM.yaml
+configs/rxnmapper_baseline.yaml
+configs/config.json
+create_rxnmapper_dataset
+data
+examples
+experiments/V1_Benchmarks
+experiments/MLM_finetuning
+experiments/AtomMap_finetuning
+notebooks
+scripts/finetune_model_with_atom_map_xent.py
+scripts/process_data.py
+scripts/run_calc_levenshtein_dist_tanimoto_sim.py
+scripts/setup_atom_maps_cyclisation.py
+scripts/validation_script.py
+
