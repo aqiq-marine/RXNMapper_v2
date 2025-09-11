@@ -25,11 +25,13 @@ dependencies = [
   "datasets>=3.1.0",
   "transformers==4.46.3",
   "torch>=1.5.0,<2.5",
+  "tensorboardx",
+  "accelerate>=0.26.0",
   "rdkit>=2024.3.5",
   "ipykernel>=6.29.5",
   "wandb>=0.18.7",
   "rxn-chem-utils>=1.0.3",
-  "atommap-eval @ git+https://github.com/yvsgrndjn/atommap_eval.git@v0.4.0"
+  "atommap-eval>=1.0.0",
 ]
 
 classifiers = [
