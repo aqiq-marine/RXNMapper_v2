@@ -1,0 +1,5 @@
+dataset_path: "path/to/dataset.csv"
+delimiter: "," 
+default_vocab_path: "path/to/vocab.txt"
+merge_new_with_default: False
+save_vocab_path: "path/to/new/vocab.txt"
