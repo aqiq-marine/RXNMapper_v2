@@ -8,7 +8,7 @@ import os
 import re
 
 from collections import Counter
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Iterable
 from transformers import BertTokenizer
 
 from .smiles_utils import SMI_REGEX_PATTERN
@@ -179,6 +179,41 @@ def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str]=None, 
 
     return special_tokens + tokens
 
+
+def build_vocab_from_data_stream(
+        smiles_iter: Iterable[str],
+        special_tokens: Optional[List[str]] = None,
+        min_freq: int = 1,
+) -> List[str]:
+    '''
+    Build a vocabulary based on the BasicSmilesTokenizer from an iterable of SMILES strings. Uses SMILES regex pattern to tokenize smiles_list.
+
+    Args:
+        smiles_iter: Iterable[str] yielding SMILES
+        special_tokens: Tokens to place at the front of the vocab
+        min_freq: Keep tokens whose frequency >= min_freq
+    
+    Returns:
+        list: [special_tokens..., learned_tokens]
+    '''
+    tokenizer = BasicSmilesTokenizer()
+    counter = Counter()
+
+    for el in smiles_iter:
+        if not el:
+            continue
+        tokens = tokenizer.tokenize(el)
+        if tokens:
+            counter.update(tokens)
+    
+    if special_tokens is None:
+        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"] 
+    specials_set = set(special_tokens)
+
+    tokens = sorted(tok for tok, freq in counter.items() if freq >= min_freq and tok not in specials_set)
+
+    vocab = list(dict.fromkeys(special_tokens + tokens))
+    return vocab
 
 def list_to_ord_dict(tok_list:List)->collections.OrderedDict:
     vocab = collections.OrderedDict()
