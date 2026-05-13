@@ -13,9 +13,8 @@ python scripts/train_mlm_alberta.py -c configs/training_baseline.yaml
 """
 import os
 import pandas as pd
-from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments
+from transformers import AlbertForMaskedLM, AlbertConfig, Trainer, TrainingArguments, DataCollatorForLanguageModeling
 from datasets import load_dataset
-from transformers import DataCollatorForLanguageModeling
 from rxnmapper.tokenization_smiles import SmilesTokenizer, build_vocab_from_data, merge_ordered_vocabs, list_to_ord_dict, load_vocab, save_vocabulary
 import click
 import yaml

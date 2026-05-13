@@ -1,16 +1,21 @@
 # Basic Params:
-dataset_name: "USPTO"
-checkpoint_path: "/absolute/path/to/checkpoint/folder"
-dataset_path: "/absolute/path/to/csv/of/dataset"
+dataset_name: "USPTO" # only for naming
+checkpoint_path: "/absolute/path/to/checkpoint/folder" # can be left empty is `resume_from_checkpoint: False`
+dataset_path: "/absolute/path/to/csv/of/dataset" # path to the preprocessed dataset (out from `preprocess_by_token_len`)
+delimiter: "\t" #"," for csv, "\t" for tsv,..
 resume_from_checkpoint: false 
 
 # Preprocessing argument (i.e. does the dataset need to be tokenised and filtered for sequence length)
 preprocess_dataset: false
+save_processed_data_path: "" # not implemented yet in training
 
 # Vocab arguments (i.e. do we want to build a new vocab based on the new data + merge it with the USPTO vocab):
-vocab_path: "" # if custom vocab other than default
+default_vocab_path: "rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/vocab.txt" #is hardcoded in train_mlm_alberta_stream.py for now
+vocab_path: "/path/to/new/vocab" # if custom vocab other than default, empty otherwise
 auto_vocab: false
-vocab_output_path:
+save_vocab_path: "" # not implemented yet
+merge_new_with_default: false # not implemented yet. auto-vocab automatically merges new vocab with default vocab
+vocab_output_path: ""
 
 # Model arguments:
 alberta_config: {
@@ -66,7 +71,7 @@ alberta_config: {
     "torchscript": false,
     "type_vocab_size": 2,
     "use_bfloat16": false,
-    "vocab_size": 591
+    "vocab_size": 591 #adapt based on your vocab
   }
 
 
@@ -86,18 +91,17 @@ output_dir: "trained_models/model_name"
 logging_dir: "logs/model_name"
 run_name: "model_name"
 
-
 learning_rate: 0.0001
 weight_decay: 0.0001
 batch_size: 32
 accum_steps: 4
 
-max_steps: 1_500_000
+max_steps: 2_000_000
 warmup_steps: 10_000
 
 save_strategy: "steps"
 save_step: 10_000
-save_total_limit: 150
+save_total_limit: 200
 
 logging_steps: 500
 logging_first_step: True
