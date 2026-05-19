@@ -1,16 +1,43 @@
 from typing import List, Dict, Tuple, Optional
-from atommap_eval.evaluator import are_atom_maps_equivalent
-from atommap_eval.parallel import evaluate_pairs_in_parallel
-
+import pandas as pd
+from atommap_eval.preprocess import preprocess_dataset
+from atommap_eval.data_models import ReactionPair
+from atommap_eval.pair_evaluation import evaluate_pairs_batched
 
 def convert_to_tuple_pair(list1: List, list2: List) -> List[Tuple[str,str]]:
     return [(el_list1, el_list2) for el_list1, el_list2 in zip(list1, list2)]
 
 
+def convert_rxn_lists_to_df(
+        gt_rxn_list: List[str],
+        pred_rxn_list: List[str]
+        ) -> pd.DataFrame:
+    """
+    Takes lists of ground truth and predicted reactions and arranges them in a
+    pd.DataFrame to match API of atommap-eval.
+
+    Args:
+        ground_truth_rxns (List[str]): Ground-truth atom-mapped reactions.
+        predicted_rxns (List[str]): Predicted atom-mapped reactions.
+    
+    Returns:
+        pd.DataFrame: DataFrame with Nx2 shape, with N beign the length of both lists.
+    """
+
+    assert len(gt_rxn_list)==len(pred_rxn_list), f"Both input lists must be the same length, now {len(gt_rxn_list)}, {len(pred_rxn_list)}"
+    return pd.DataFrame(
+        {
+            "ground_truth_rxn": gt_rxn_list,
+            "predicted_rxn" : pred_rxn_list,
+        }
+    )
+
+
+
 def evaluate_atom_map_equivalence(
         ground_truth_rxns: List[str],
         predicted_rxns: List[str],
-        canonicalize: bool = True
+        preprocessing: bool = True,
         ) -> List[Dict]:
     """
     Compares predicted and ground-truth atom maps using graph-based
@@ -19,72 +46,40 @@ def evaluate_atom_map_equivalence(
     Args:
         ground_truth_rxns (List[str]): Ground-truth atom-mapped reactions.
         predicted_rxns (List[str]): Predicted atom-mapped reactions.
-        canonicalize (bool):    If all reactions should be canonicalized
-        (SMILES and atom-map indices)
+        preprocessing (bool): Should all reactions be preprocessed (ensures format is respected)
 
     Returns:
         List[Dict]: Detailed comparison info for each reaction.
     """
-    results = []
-
-    for index, (ground_truth_rxn, predicted_rxn) in enumerate(zip(ground_truth_rxns, predicted_rxns)):
-        try:
-            success = are_atom_maps_equivalent(ground_truth_rxn, predicted_rxn, canonicalize=canonicalize)
-        except Exception as e:
-            success = False
-            print(f"Error at index {index}: {e}")
-
-
-        results.append({
-            "index": index, 
-            "ground_truth_rxn": ground_truth_rxn, 
-            "predicted_rxn": predicted_rxn, 
-            "success": success, 
-        })
-
-    return results
-
-
-def evaluate_atom_map_equivalence_parallel(
-        ground_truth_rxns: List[str],
-        predicted_rxns: List[str],
-        canonicalize: bool = False,
-        num_workers: Optional[int] = None,
-        chunksize: int = 10,
-        ) -> List[Dict]:
-    """
-    Compares predicted and ground-truth atom maps using graph-based
-    isomorphism evaluation with multi-cpu performance.
-
-    Args:
-        ground_truth_rxns (List[str]): Ground-truth atom-mapped reactions.
-        predicted_rxns (List[str]): Predicted atom-mapped reactions.
-        canonicalize (bool):    If all reactions should be canonicalized
-        (SMILES and atom-map indices)
-        num_workers (Optional[int]): number of CPUs to use in parallel
-        chunksize (int):    number of reactions to submit at the same time
-
-    Returns:
-        List[Dict]: Detailed comparison info for each reaction.
-    """
-    gt_pred_tuple_list = convert_to_tuple_pair(ground_truth_rxns, predicted_rxns)
-
-    # Run parallel evaluation
-    results_bool = evaluate_pairs_in_parallel(
-        pairs = gt_pred_tuple_list,
-        canonicalize = canonicalize,
-        num_workers=num_workers,
-        chunksize=chunksize,
-        )
     
-    # Build result dicts
-    results = []
-    for index, ((gt, pred), success) in enumerate(zip(gt_pred_tuple_list, results_bool)):
-        results.append({
-            "index": index,
-            "ground_truth_rxn": gt,
-            "predicted_rxn": pred,
-            "success": success,
-        })
+    pairs = []
+    if preprocessing:
+        input_df = convert_rxn_lists_to_df(ground_truth_rxns,predicted_rxns)
+        preproc_df = preprocess_dataset(df=input_df)
+        
+        for _, row in preproc_df.iterrows():
+            pairs.append(
+                ReactionPair(
+                    row.preproc_ref,
+                    row.preproc_pred,
+                    row.pair_index,
+                )
+            )
+    elif not preprocessing:
+        raise NotImplementedError
 
+    # run evaluation
+    eval_results = evaluate_pairs_batched(pairs=pairs, num_workers=8, batch_per_worker=32)
+    
+    # prepare the results summary output
+    ## add eval_results to the preprocessed_df
+    preproc_df["eval_result"] = [eval_results[el][0] for el in range(len(eval_results))]
+    results = []
+    for _,row in preproc_df.iterrows():
+        results.append({
+            "index": row.pair_index,
+            "ground_truth_rxn": row.ground_truth_rxn,
+            "predicted_rxn": row.predicted_rxn,
+            "success": row.eval_result,
+        })
     return results
