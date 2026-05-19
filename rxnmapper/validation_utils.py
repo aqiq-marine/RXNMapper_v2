@@ -33,11 +33,12 @@ def convert_rxn_lists_to_df(
     )
 
 
-
 def evaluate_atom_map_equivalence(
         ground_truth_rxns: List[str],
         predicted_rxns: List[str],
         preprocessing: bool = True,
+        num_workers: int = 8,
+        batch_per_worker: int = 32,
         ) -> List[Dict]:
     """
     Compares predicted and ground-truth atom maps using graph-based
@@ -69,7 +70,7 @@ def evaluate_atom_map_equivalence(
         raise NotImplementedError
 
     # run evaluation
-    eval_results = evaluate_pairs_batched(pairs=pairs, num_workers=8, batch_per_worker=32)
+    eval_results = evaluate_pairs_batched(pairs=pairs, num_workers=num_workers, batch_per_worker=batch_per_worker)
     
     # prepare the results summary output
     ## add eval_results to the preprocessed_df
