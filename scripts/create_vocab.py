@@ -44,11 +44,12 @@ def _validate_paths_and_config(config) -> None:
                 "merge_new_with_default=True but 'default_vocab_path' is empty. "
                 "Provide a valid vocab path."
             )
-    default_file = Path(default_path)
-    if not default_file.is_file():
-        raise FileNotFoundError(
-            f"merge_new_with_default=True but default vocab file does not exist: {default_file}"
-        )
+        default_file = Path(default_path)
+        
+        if not default_file.is_file():
+            raise FileNotFoundError(
+                f"merge_new_with_default=True but default vocab file does not exist: {default_file}"
+            )
 
 def _validate_dataset_has_rxn_header(dataset_path: Path, delimiter: str) -> None:
     # read only header
