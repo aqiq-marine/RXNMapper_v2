@@ -162,7 +162,12 @@ def load_vocab(vocab_file):
 
 # additonal functions for vocabulary handling
 #
-def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str]=None, min_freq:int=1)->List[str]:
+def build_vocab_from_data(
+        smiles_list:List[str], 
+        special_tokens:Optional[List[str]] = None, 
+        num_unused_tokens: int = 10,
+        min_freq:int=1
+        )->List[str]:
     '''
     Build a vocabulary based on the BasicSmilesTokenizer, using smiles regex pattern to tokenize smiles_list
     '''
@@ -177,12 +182,17 @@ def build_vocab_from_data(smiles_list:List[str], special_tokens:List[str]=None, 
     if special_tokens is None:
         special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"]
 
-    return special_tokens + tokens
+    unused_tokens = [f"[unused{i}]" for i in range(num_unused_tokens)]
+
+    reserved_tokens = list(dict.fromkeys(special_tokens + unused_tokens))
+
+    return reserved_tokens + tokens
 
 
 def build_vocab_from_data_stream(
         smiles_iter: Iterable[str],
         special_tokens: Optional[List[str]] = None,
+        num_unused_tokens: int = 10, 
         min_freq: int = 1,
 ) -> List[str]:
     '''
@@ -191,10 +201,11 @@ def build_vocab_from_data_stream(
     Args:
         smiles_iter: Iterable[str] yielding SMILES
         special_tokens: Tokens to place at the front of the vocab
+        num_unused_tokens: Number of [unused..] tokens to reserve
         min_freq: Keep tokens whose frequency >= min_freq
     
     Returns:
-        list: [special_tokens..., learned_tokens]
+        list: [special/reserved_tokens..., learned_tokens]
     '''
     tokenizer = BasicSmilesTokenizer()
     counter = Counter()
@@ -207,10 +218,18 @@ def build_vocab_from_data_stream(
             counter.update(tokens)
     
     if special_tokens is None:
-        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"] 
-    specials_set = set(special_tokens)
+        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"]
+    
+    unused_tokens = [f"[unused{i}]" for i in range(num_unused_tokens)]
 
-    tokens = sorted(tok for tok, freq in counter.items() if freq >= min_freq and tok not in specials_set)
+    reserved_tokens = list(dict.fromkeys(special_tokens + unused_tokens))
+    reserved_set = set(reserved_tokens)
+
+    tokens = sorted(
+        tok 
+        for tok, freq in counter.items() 
+        if freq >= min_freq and tok not in reserved_set
+        )
 
     vocab = list(dict.fromkeys(special_tokens + tokens))
     return vocab
