@@ -9,7 +9,7 @@ Takes as input:
 
 Example run of training: 
 
-python scripts/train_mlm_alberta.py -c configs/training_baseline.yaml
+python scripts/train_mlm_alberta.py -c configs/training_from_scratch.yaml
 """
 import os
 import pandas as pd
