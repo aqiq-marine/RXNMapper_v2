@@ -162,6 +162,18 @@ def load_vocab(vocab_file):
 
 # additonal functions for vocabulary handling
 #
+
+def get_default_special_tokens(num_unused_tokens: int = 10) -> List[str]:
+    '''
+    Return special tokens respecting BERT-like default format.
+    '''
+    return (
+        ["[PAD]"]
+        + [f"[unused{i}]" for i in range(num_unused_tokens)]
+        + ["[UNK]", "[CLS]", "[SEP]", "[MASK]"]
+    )
+
+
 def build_vocab_from_data(
         smiles_list:List[str], 
         special_tokens:Optional[List[str]] = None, 
@@ -178,13 +190,16 @@ def build_vocab_from_data(
         tokens = tokenizer.tokenize(el)
         counter.update(tokens)
 
-    tokens = sorted({tok for tok, freq in counter.items() if freq >= min_freq})
     if special_tokens is None:
-        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"]
+        special_tokens = get_default_special_tokens(num_unused_tokens=num_unused_tokens)
 
-    unused_tokens = [f"[unused{i}]" for i in range(num_unused_tokens)]
+    reserved_tokens = list(dict.fromkeys(special_tokens))
+    reserved_set = set(reserved_tokens)
 
-    reserved_tokens = list(dict.fromkeys(special_tokens + unused_tokens))
+    tokens = sorted(
+        tok 
+        for tok, freq in counter.items() 
+        if freq >= min_freq and tok not in reserved_set)
 
     return reserved_tokens + tokens
 
@@ -218,11 +233,9 @@ def build_vocab_from_data_stream(
             counter.update(tokens)
     
     if special_tokens is None:
-        special_tokens = ["[PAD]", "[CLS]", "[SEP]", "[MASK]", "[UNK]"]
-    
-    unused_tokens = [f"[unused{i}]" for i in range(num_unused_tokens)]
+        special_tokens = get_default_special_tokens(num_unused_tokens=num_unused_tokens)
 
-    reserved_tokens = list(dict.fromkeys(special_tokens + unused_tokens))
+    reserved_tokens = list(dict.fromkeys(special_tokens))
     reserved_set = set(reserved_tokens)
 
     tokens = sorted(
@@ -231,8 +244,7 @@ def build_vocab_from_data_stream(
         if freq >= min_freq and tok not in reserved_set
         )
 
-    vocab = list(dict.fromkeys(special_tokens + tokens))
-    return vocab
+    return reserved_tokens + tokens
 
 def list_to_ord_dict(tok_list:List)->collections.OrderedDict:
     vocab = collections.OrderedDict()
