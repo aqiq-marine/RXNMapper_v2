@@ -1,6 +1,6 @@
 # Basic Params:
 dataset_name: "USPTO" # only for naming
-checkpoint_path: "/absolute/path/to/checkpoint/folder" # can be left empty is `resume_from_checkpoint: False`
+checkpoint_path: "/absolute/path/to/checkpoint/folder" # can be left empty if `resume_from_checkpoint: False`
 dataset_path: "/absolute/path/to/csv/of/dataset" # path to the preprocessed dataset (out from `preprocess_by_token_len`)
 delimiter: "\t" #"," for csv, "\t" for tsv,..
 resume_from_checkpoint: false 
