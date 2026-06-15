@@ -1,0 +1,10 @@
+dataset_path: "/path/to/val_set.csv"
+rxn_col: "rxn"                   #unmapped reactions column
+ref_col: "mapped_rxn"            #ground truth reactions column
+
+model_path: "/path/to/model"     #example /path/to/rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k"
+model_type: "albert"
+vocab_path: "/path/to/vocab.txt"
+batch_size: 32
+heads: [0, 1, 2, 3, 4, 5, 6, 7]  #heads to try
+layers: [9, 10, 11]              #layers to try
