@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rxnmapper-v2"
 version = "0.2.0"
-description = "Improved RXNMapper-based atom-mapping pipeline"
+description = "Updated RXNMapper-based atom-mapping pipeline"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
@@ -24,14 +24,14 @@ dependencies = [
   "rapidfuzz",
   "datasets>=3.1.0",
   "transformers==4.46.3",
-  "torch>=1.5.0,<2.5",
   "tensorboardx",
   "accelerate>=0.26.0",
   "rdkit>=2024.3.5",
   "ipykernel>=6.29.5",
   "wandb>=0.18.7",
   "rxn-chem-utils>=1.0.3",
-  "atommap-eval>=1.0.0",
+  "atommap-eval>=1.4.2",
+  "setuptools>=59.2.0,<81.0.0"
 ]
 
 classifiers = [
@@ -60,6 +60,10 @@ dev = [
   "sphinx-rtd-theme==0.4.3",
   "twine==3.1.1",
   "types-setuptools>=62.6.0",
+]
+
+torch = [
+  "torch>=2.4",
 ]
 
 # Optional RDKit install variants (mirrors your previous extras)
@@ -119,4 +123,9 @@ exclude = ["tests*"]
 "rxnmapper" = [
   "models/transformers/albert_heads_8_uspto_all_1310k/*",
   "py.typed",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
 ]
