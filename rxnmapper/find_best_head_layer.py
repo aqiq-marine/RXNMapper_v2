@@ -1,12 +1,8 @@
 import os
 import json
 import yaml
-import pandas as pd
-from tqdm import tqdm
-from typing import List, Dict, Tuple
-from rxnmapper import BatchedMapper, RXNMapper
+from typing import List, Dict
 from rxnmapper.mapping_evaluator_base import BaseMappingEvaluator
-#from rxnmapper.smiles_utils import compare_pred_maps_w_ground_truth
 
 def parse_config(config_path):
     with open(config_path, "r") as f:
