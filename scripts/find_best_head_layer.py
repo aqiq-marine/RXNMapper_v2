@@ -29,10 +29,9 @@ def main(config_path: str)-> None:
     if config_path: 
         config = parse_config(config_path)
     
-
     val_set_df = pd.read_csv(config["dataset_path"])
-    rxns_list = val_set_df['rxn'].tolist()[:10]
-    ref_rxns_list = val_set_df['mapped_rxn'].tolist()[:10]
+    rxns_list = val_set_df['rxn'].tolist()
+    ref_rxns_list = val_set_df['mapped_rxn'].tolist()
 
     fbhlc = FindBestHeadLayerCombination(
         heads=config["heads"],
