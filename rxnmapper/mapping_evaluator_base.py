@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 from typing import List, Dict, Optional, Tuple, Union
 from rxnmapper import BatchedMapper
-from rxnmapper.validation_utils import evaluate_atom_map_equivalence, evaluate_atom_map_equivalence_parallel
+from rxnmapper.validation_utils import evaluate_atom_map_equivalence
 
 class BaseMappingEvaluator:
     """
@@ -19,7 +19,6 @@ class BaseMappingEvaluator:
                  attention_multiplier: float = 90.0, 
                  canonicalize: bool = True, 
                  placeholder_for_invalid: str = ">>", 
-                 canonical_eval: bool = False,
                  ):
         """
         Base class for evaluating or predicting atom-mapped reactions.
@@ -45,8 +44,8 @@ class BaseMappingEvaluator:
         self.attention_multiplier = attention_multiplier
         self.canonicalize = canonicalize
         self.placeholder_for_invalid = placeholder_for_invalid
-        self.canonical_eval = canonical_eval
         self.num_workers = os.cpu_count() - 2
+        self.models_to_eval_dict = None
 
 
     def _validate_attrs(self, required_attrs: List[str]):
@@ -127,7 +126,7 @@ class BaseMappingEvaluator:
 
 
     def evaluate_results(self,
-                         chunksize: int = 10,
+                         batch_per_worker: int = 32,
                          return_detailed: bool = False
         ) -> Union[Dict, Tuple[Dict, Dict[str, pd.DataFrame]]]:
         """
@@ -157,12 +156,12 @@ class BaseMappingEvaluator:
                 self.pred_results_df['model_id'] == model_id
             ]['mapped_rxn'].tolist()
 
-            model_results = evaluate_atom_map_equivalence_parallel(
+            model_results = evaluate_atom_map_equivalence(
                 ground_truth_rxns=self.ref_rxns_list,
                 predicted_rxns=predictions,  
-                canonicalize=self.canonical_eval,
+                preprocessing=True,
                 num_workers=self.num_workers,
-                chunksize=chunksize,
+                batch_per_worker=batch_per_worker,
             )
             df_model_results = pd.DataFrame(model_results)
             result_dicts[model_id] = df_model_results['success'].mean()
