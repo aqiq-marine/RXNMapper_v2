@@ -80,14 +80,15 @@ class BaseMappingEvaluator:
         model_path = config["model_path"] if "model_path" in config else self.model_path
         model_type = config["model_type"] if "model_type" in config else self.model_type
         vocab_path = config["vocab_path"] if "vocab_path" in config else self.vocab_path
+        attention_multiplier = config.get("attention_multiplier", self.attention_multiplier)
 
         mapper = BatchedMapper(
-            batch_size=self.batch_size, 
-            model_path=model_path, 
-            head=config["head"], 
-            layer=config["layer"], 
-            model_type=model_type, 
-            attention_multiplier=self.attention_multiplier, 
+            batch_size=self.batch_size,
+            model_path=model_path,
+            head=config["head"],
+            layer=config["layer"],
+            model_type=model_type,
+            attention_multiplier=attention_multiplier,
             canonicalize=self.canonicalize, 
             placeholder_for_invalid=self.placeholder_for_invalid, 
             vocab_path = vocab_path
