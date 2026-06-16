@@ -30,8 +30,16 @@ def main(config_path: str)-> None:
         config = parse_config(config_path)
     
     val_set_df = pd.read_csv(config["dataset_path"])
-    rxns_list = val_set_df['rxn'].tolist()
-    ref_rxns_list = val_set_df['mapped_rxn'].tolist()
+    rxn_col = config.get("rxn_col", "rxn")
+    ref_col = config.get("ref_col", "mapped_rxn")
+    for col in (rxn_col, ref_col):
+        if col not in val_set_df.columns:
+            raise ValueError(
+                f"Column '{col}' not found in {config['dataset_path']}. "
+                f"Available columns: {list(val_set_df.columns)}"
+            )
+    rxns_list = val_set_df[rxn_col].tolist()
+    ref_rxns_list = val_set_df[ref_col].tolist()
 
     fbhlc = FindBestHeadLayerCombination(
         heads=config["heads"],
