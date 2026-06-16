@@ -1,0 +1,29 @@
+# Evaluate one or more model / head / layer configurations on a validation set
+# Run: python scripts/evaluate_models.py -c configs/models_to_eval_example.yaml
+
+dataset_path: "/path/to/val_set.csv"   # CSV with unmapped + ground-truth mapped reactions
+rxn_col: "rxn"                          # unmapped reactions column
+ref_col: "mapped_rxn"                   # ground-truth atom-mapped reactions column
+
+batch_size: 32
+output_path: "results/model_eval.csv"   # detailed per-model results (long format);
+                                         # an accuracy summary is written next to it
+                                         # as model_eval_summary.csv
+
+# Defaults every model inherits unless overriden.
+defaults:
+  model_type: "albert"
+  vocab_path: "/path/to/vocab.txt"
+  attention_multiplier: 90
+
+# Models to evaluate: name -> configuration.
+models:
+  original:
+    model_path: "./rxnmapper/models/transformers/albert_heads_8_uspto_all_1310k/"
+    head: 5
+    layer: 10
+
+  uspto_2800k:
+    model_path: "../rxnmapper/models/transformers/alberta_uspto_2800k/checkpoint-1360000"
+    head: 3
+    layer: 10
