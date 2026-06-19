@@ -24,6 +24,20 @@ from .tokenization_smiles import SmilesTokenizer
 
 MODEL_TYPE_DICT = {"bert": BertModel, "albert": AlbertModel, "roberta": RobertaModel}
 
+# Named models packaged with rxnmapper. "default" is used when neither a
+# "model_path" nor a "model_name" is provided in the config.
+PACKAGED_MODELS: Dict[str, Dict[str, Any]] = {
+    "default": {"dir": "alberta_uspto_2800k", "head": 3, "layer": 10},
+    "original": {"dir": "albert_heads_8_uspto_all_1310k", "head": 5, "layer": 10},
+}
+
+
+def _packaged_model_path(dir_name: str) -> str:
+    return pkg_resources.resource_filename(
+        "rxnmapper", f"models/transformers/{dir_name}"
+    )
+
+
 _logger = logging.getLogger(__name__)
 _logger.addHandler(logging.NullHandler())
 
@@ -58,17 +72,22 @@ class RXNMapper:
             config = {}
         self.config = config
 
-        # Config takes "model_path", "model_type", "attention_multiplier", "head", "layers"
-        self.model_path = config.get(
-            "model_path",
-            pkg_resources.resource_filename(
-                "rxnmapper", "models/transformers/albert_heads_8_uspto_all_1310k"
-            ),
-        )
+        # Select a named packaged model ("default" -> alberta_uspto_2800k,
+        # "original" -> the original RXNMapper model). An explicit "model_path",
+        # "head" or "layers" in the config overrides the named-model values.
+        model_name = config.get("model_name", "default")
+        if model_name not in PACKAGED_MODELS:
+            raise ValueError(
+                f"Unknown model_name '{model_name}'. Available: {list(PACKAGED_MODELS)}"
+            )
+        spec = PACKAGED_MODELS[model_name]
+
+        # Config takes "model_name", "model_path", "model_type", "attention_multiplier", "head", "layers"
+        self.model_path = config.get("model_path") or _packaged_model_path(spec["dir"])
         self.model_type = config.get("model_type", "albert")
         self.attention_multiplier = config.get("attention_multiplier", 90.0)
-        self.head = config.get("head", 5)
-        self.layers = config.get("layers", [10])
+        self.head = config.get("head", spec["head"])
+        self.layers = config.get("layers", [spec["layer"]])
 
         self.logger = logger if logger else _logger
         self.model, self.tokenizer = self._load_model_and_tokenizer()

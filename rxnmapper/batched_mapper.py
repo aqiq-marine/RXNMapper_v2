@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Dict, Iterable, Iterator, List, Optional
 
-import pkg_resources
 from rxn.utilities.containers import chunker
 from rxn.utilities.files import PathLike
 
@@ -23,9 +22,10 @@ class BatchedMapper:
         self,
         batch_size: int,
         model_path: Optional[PathLike] = None,
-        head: int = 5,
+        model_name: str = "default",
+        head: Optional[int] = None,
         attention_multiplier: float = 90.0,
-        layer: int = 10,
+        layer: Optional[int] = None,
         model_type: str = "albert",
         canonicalize: bool = False,
         placeholder_for_invalid: str = ">>",
@@ -34,31 +34,32 @@ class BatchedMapper:
         """
         Args:
             batch_size: batch size for inference.
-            model_path: path to the model directory, defaults to the model from
-                the original publication.
-            head: head related to atom mapping in the model. The default is the
-                one for the original publication.
+            model_path: path to a model directory. If None, the packaged model
+                selected by ``model_name`` is used.
+            model_name: name of the packaged model to use when ``model_path`` is
+                None. "default" (alberta_uspto_2800k) or "original".
+            head: head related to atom mapping. If None, the selected model's
+                default head is used.
             attention_multiplier: attention multiplier, no need to change the default.
-            layer: layer, no need to change the default.
+            layer: layer. If None, the selected model's default layer is used.
             model_type: model type.
             canonicalize: whether to canonicalize before predicting the atom mappings.
             placeholder_for_invalid: placeholder to use in the output when there
                 is an issue in the prediction (number of tokens, invalid SMILES, ...).
         """
-        if model_path is None:
-            model_path = pkg_resources.resource_filename(
-                "rxnmapper", "models/transformers/albert_heads_8_uspto_all_1310k"
-            )
-        self.mapper = RXNMapper(
-            config=dict(
-                model_path=str(model_path),
-                head=head,
-                layers=[layer],
-                model_type=model_type,
-                attention_multiplier=attention_multiplier,
-                vocab_path=vocab_path,
-            ),
+        config: Dict[str, Any] = dict(
+            model_name=model_name,
+            model_type=model_type,
+            attention_multiplier=attention_multiplier,
+            vocab_path=vocab_path,
         )
+        if model_path is not None:
+            config["model_path"] = str(model_path)
+        if head is not None:
+            config["head"] = head
+        if layer is not None:
+            config["layers"] = [layer]
+        self.mapper = RXNMapper(config=config)
         self.batch_size = batch_size
         self.canonicalize = canonicalize
         self.placeholder_for_invalid = placeholder_for_invalid
