@@ -3,7 +3,7 @@ import re
 import json
 import pandas as pd
 from tqdm import tqdm
-from typing import List, Dict
+from typing import List, Dict, Optional
 from rxnmapper import BatchedMapper
 from rxnmapper.mapping_evaluator_base import BaseMappingEvaluator
 
@@ -13,7 +13,7 @@ def open_json(json_path):
         return json_file
 
 
-def list_checkpoints(folder_path):
+def list_checkpoints(folder_path, limit: Optional[int] =None):
     """
     Lists subfolders in folder_path that match the 'checkpoint-{number}' pattern.
 
@@ -34,7 +34,8 @@ def list_checkpoints(folder_path):
             step = int(match.group(1))
             matches.append((step, full_path))
     matches.sort(key=lambda x: x[0])
-    
+    if limit:
+        matches = matches[-limit:]
     return matches
 
 
@@ -48,6 +49,7 @@ class FindBestTrainingCheckpoint(BaseMappingEvaluator):
         layer: int,
         folder_path: str,
         model_name: str = "model",
+        limit_checkpoints: Optional[int] = None,
         *args,
         **kwargs,
     ):
@@ -64,6 +66,7 @@ class FindBestTrainingCheckpoint(BaseMappingEvaluator):
         self.layer = layer
         self.folder_path = folder_path
         self.model_name = model_name
+        self.limit_checkpoints = limit_checkpoints
     
 
     def get_config_dict_to_eval(self) -> Dict[str, Dict[str, int]]:
@@ -74,7 +77,7 @@ class FindBestTrainingCheckpoint(BaseMappingEvaluator):
             Dict[str, Dict]: Dictionary where keys are model IDs and values are the head, layer, and model path.
         """
         assert os.path.isdir(self.folder_path), "The entered folder path does not exist"
-        matching_folders = list_checkpoints(self.folder_path)
+        matching_folders = list_checkpoints(self.folder_path, self.limit_checkpoints)
 
         self.models_to_eval_dict = {}
         for step, model_path in matching_folders:
