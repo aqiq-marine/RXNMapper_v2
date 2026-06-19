@@ -15,7 +15,7 @@ class BaseMappingEvaluator:
                  model_path: Optional[str] = None, 
                  model_type: str = 'albert', 
                  vocab_path: Optional[str] = None, 
-                 batch_size: int = 1, 
+                 batch_size: int = 32, 
                  attention_multiplier: float = 90.0, 
                  canonicalize: bool = True, 
                  placeholder_for_invalid: str = ">>", 
