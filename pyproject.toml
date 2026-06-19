@@ -48,7 +48,6 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-# Dev tools / docs / release
 dev = [
   "black>=22.1.0",
   "bump2version>=1.0.1",
@@ -66,7 +65,7 @@ torch = [
   "torch>=2.4",
 ]
 
-# Optional RDKit install variants (mirrors your previous extras)
+# Optional RDKit install variants
 rdkit = [
   'rdkit-pypi>=2021.3.2; python_version < "3.7"',
   'rdkit>=2022.3.4; python_version >= "3.7"',
@@ -114,13 +113,12 @@ zip-safe = false
 include-package-data = true
 
 [tool.setuptools.packages.find]
-# No src/ layout in your current config; this discovers top-level packages.
 where = ["."]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-# Ship your trained models + typing marker
 "rxnmapper" = [
+  "models/transformers/alberta_uspto_2800k/*",
   "models/transformers/albert_heads_8_uspto_all_1310k/*",
   "py.typed",
 ]
