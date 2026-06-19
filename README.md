@@ -1,15 +1,13 @@
 # RXNMapper v2
 
-**Fast, robust, rule-free atom mapping for chemical reactions — with a complete, reproducible pipeline to train and select your own model.**
+**Updated fast and rule-free atom mapping for chemical reactions with a complete, reproducible pipeline to train and select your own model.**
 
 RXNMapper v2 builds on the original [RXNMapper](https://github.com/rxn4chemistry/rxnmapper) (Schwaller *et al.*, *Science Advances* 2021), which showed that atom mapping can be learned **unsupervised** from reaction SMILES: an ALBERT model trained via Masked Language Modeling (MLM) on unmapped reaction SMILES grasps which atoms in the reactants correspond to which atoms in the products.
-
-Atom mapping is a building block for reaction analysis, retrosynthesis, mechanism elucidation, and dataset curation — so a fast, reliable, rule-free mapper is broadly useful.
 
 This version adds:
 
 1. **Retrained models** released openly on the Hugging Face Hub.
-2. **A full training-from-scratch pipeline** — build a vocabulary, preprocess data, pretrain an ALBERT model, and **select the best model on your own validation set**.
+2. **A full training-from-scratch pipeline** build a vocabulary, preprocess data, pretrain an ALBERT model, and **select the best model on your own validation set**.
 3. **Graph-isomorphism evaluation** of mapping quality via [`atommap-eval`](https://pypi.org/project/atommap-eval/).
 
 ---
@@ -83,7 +81,7 @@ By default this uses the **`alberta-uspto-2800k`** model (head 3, layer 10). To 
 rxn_mapper = RXNMapper(config={"model_name": "original"})   # original model (head 5, layer 10)
 ```
 
-For large inputs and automatic error handling, use `BatchedMapper`. It never raises on invalid input — it returns `">>"` (or an empty dict) for reactions it cannot map:
+For large inputs and automatic error handling, use `BatchedMapper`. It never raises on invalid input, but returns `">>"` (or an empty dict) for reactions it cannot map:
 
 ```python
 from rxnmapper import BatchedMapper
@@ -127,7 +125,6 @@ python scripts/run_rxnmapper_on_dataset.py \
 | --- | --- | --- |
 | `alberta-uspto-2800k` | USPTO (~2.8M reactions), pretrained from scratch | [yvsgrndjn/alberta-uspto-2800k](https://huggingface.co/yvsgrndjn/alberta-uspto-2800k) |
 
-> **Note:** the model repository is **private until publication** — the link above will only resolve once it is made public.
 
 The repository hosts all 150 training checkpoints (steps 10k–1.5M) as `checkpoint-<step>/` subfolders, plus the recommended `checkpoint-1360000` (head 3, layer 10) at the root. Download it with:
 
@@ -135,7 +132,7 @@ The repository hosts all 150 training checkpoints (steps 10k–1.5M) as `checkpo
 hf download yvsgrndjn/alberta-uspto-2800k --local-dir alberta-uspto-2800k
 ```
 
-The downloaded folder matches the layout the scripts expect — point `model_path` at a checkpoint folder and `vocab_path` at the root `vocab.txt`.
+The downloaded folder matches the layout the scripts expect: point `model_path` at a checkpoint folder and `vocab_path` at the root `vocab.txt`.
 
 ---
 
@@ -172,7 +169,7 @@ The atom-mapping signal lives in **one attention head of one layer**. This step 
 python scripts/find_best_head_layer.py -c configs/find_best_head_layer_example.yaml
 ```
 
-Validation accuracy can be noisy, so several head/layer/checkpoint combinations may score similarly; this finds a strong local optimum. To then compare candidate **checkpoints** (or any set of models) head-to-head on your validation set, list them in `configs/models_to_eval_example.yaml` and run the evaluation below — the highest-scoring entry is your selected model.
+Validation accuracy can be noisy, so several head/layer/checkpoint combinations may score similarly; this finds a strong local optimum. To then compare candidate **checkpoints** (or any set of models) head-to-head on your validation set, list them in `configs/models_to_eval_example.yaml` and run the evaluation below: the highest-scoring entry is your selected model.
 
 ### 5. Select the training checkpoint
 
@@ -223,8 +220,8 @@ models:
 ```
 
 Outputs:
-- **`output_path`** — detailed per-model predictions in long (tidy) format (`model, index, ground_truth_rxn, predicted_rxn, success`).
-- **`<output_path stem>_summary.csv`** — accuracy per model, best first.
+- **`output_path`** detailed per-model predictions in long (tidy) format (`model, index, ground_truth_rxn, predicted_rxn, success`).
+- **`<output_path stem>_summary.csv`** accuracy per model, best first.
 - The same accuracy summary is printed to the console.
 
 ---
@@ -280,5 +277,4 @@ and the original RXNMapper paper:
 
 ## License
 
-Released under the MIT License — see [LICENSE](./LICENSE).
-</content>
+Released under the MIT License : see [LICENSE](./LICENSE).
