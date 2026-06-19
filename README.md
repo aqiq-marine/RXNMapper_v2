@@ -2,7 +2,7 @@
 
 **Fast, robust, rule-free atom mapping for chemical reactions — with a complete, reproducible pipeline to train and select your own model.**
 
-RXNMapper v2 builds on the original [RXNMapper](https://github.com/rxn4chemistry/rxnmapper) (Schwaller *et al.*, *Science Advances* 2021), which showed that atom mapping can be learned **unsupervised** from reaction SMILES: an ALBERT transformer trained only to predict masked tokens develops attention patterns that encode which atoms in the reactants correspond to which atoms in the products. No hand-coded reaction rules are needed.
+RXNMapper v2 builds on the original [RXNMapper](https://github.com/rxn4chemistry/rxnmapper) (Schwaller *et al.*, *Science Advances* 2021), which showed that atom mapping can be learned **unsupervised** from reaction SMILES: an ALBERT model trained via Masked Language Modeling (MLM) on unmapped reaction SMILES grasps which atoms in the reactants correspond to which atoms in the products.
 
 Atom mapping is a building block for reaction analysis, retrosynthesis, mechanism elucidation, and dataset curation — so a fast, reliable, rule-free mapper is broadly useful.
 
@@ -77,12 +77,19 @@ Each result contains the mapped reaction and a confidence score:
   'confidence': 0.9704424331552834}]
 ```
 
+By default this uses the **`alberta-uspto-2800k`** model (head 3, layer 10). To use the original RXNMapper model instead, pass `model_name="original"`:
+
+```python
+rxn_mapper = RXNMapper(config={"model_name": "original"})   # original model (head 5, layer 10)
+```
+
 For large inputs and automatic error handling, use `BatchedMapper`. It never raises on invalid input — it returns `">>"` (or an empty dict) for reactions it cannot map:
 
 ```python
 from rxnmapper import BatchedMapper
 
-rxn_mapper = BatchedMapper(batch_size=32)
+rxn_mapper = BatchedMapper(batch_size=32)                   # alberta-uspto-2800k by default
+# rxn_mapper = BatchedMapper(batch_size=32, model_name="original")  # original model
 rxns = ['CC[O-]~[Na+].BrCC>>CCOCC', 'invalid>>reaction']
 
 results = list(rxn_mapper.map_reactions(rxns))            # mapped reaction strings
@@ -114,13 +121,21 @@ python scripts/run_rxnmapper_on_dataset.py \
 
 ## Pretrained models
 
-Retrained ALBERT models are published on the Hugging Face Hub. `RXNMapper()` with no arguments uses the packaged default model; to use a different model (e.g. one you downloaded from the Hub or trained yourself), point the scripts at its folder via the `model_path` field in the relevant config.
+`RXNMapper()` with no arguments uses the packaged **default** model (`alberta-uspto-2800k`, head 3, layer 10); pass `model_name="original"` for the original RXNMapper model. Both ship inside the package, so they work offline. To use a different model (e.g. one you downloaded from the Hub or trained yourself), point the scripts at its folder via the `model_path` field in the relevant config.
 
 | Model | Training data | Hub |
 | --- | --- | --- |
-| `alberta-uspto-2800k` | USPTO (~2.8M reactions), pretrained from scratch | `<HF_REPO_URL>` *(to be filled in)* |
+| `alberta-uspto-2800k` | USPTO (~2.8M reactions), pretrained from scratch | [yvsgrndjn/alberta-uspto-2800k](https://huggingface.co/yvsgrndjn/alberta-uspto-2800k) |
 
-> **Note:** the Hub links are placeholders until the upload step is complete (next on the roadmap).
+> **Note:** the model repository is **private until publication** — the link above will only resolve once it is made public.
+
+The repository hosts all 150 training checkpoints (steps 10k–1.5M) as `checkpoint-<step>/` subfolders, plus the recommended `checkpoint-1360000` (head 3, layer 10) at the root. Download it with:
+
+```bash
+hf download yvsgrndjn/alberta-uspto-2800k --local-dir alberta-uspto-2800k
+```
+
+The downloaded folder matches the layout the scripts expect — point `model_path` at a checkpoint folder and `vocab_path` at the root `vocab.txt`.
 
 ---
 
@@ -151,13 +166,26 @@ Pretrains an ALBERT model by masked language modeling, saving checkpoints period
 
 ### 4. Select the best head / layer
 
-The atom-mapping signal lives in **one attention head of one layer**. This step searches head/layer combinations against your validation set (a CSV with an unmapped `rxn` column and a ground-truth `mapped_rxn` column) and reports the best one:
+The atom-mapping signal lives in **one attention head of one layer**. This step searches head/layer combinations against your validation set (a CSV with an unmapped `rxn` column and a ground-truth `mapped_rxn` column) and reports the best one (focus on layers 9 and 10 first):
 
 ```bash
 python scripts/find_best_head_layer.py -c configs/find_best_head_layer_example.yaml
 ```
 
 Validation accuracy can be noisy, so several head/layer/checkpoint combinations may score similarly; this finds a strong local optimum. To then compare candidate **checkpoints** (or any set of models) head-to-head on your validation set, list them in `configs/models_to_eval_example.yaml` and run the evaluation below — the highest-scoring entry is your selected model.
+
+### 5. Select the training checkpoint
+
+At last, once the best head/layer combination was found given the validation set, the best training checkpoint can be determined by modifying `configs/find_best_checkpoint_example.yaml` and running:
+```bash
+python scripts/find_best_training_checkpoint.py -c configs/find_best_checkpoint_example.yaml
+```
+
+## Find the best model for your data
+if the vocab from your specific data is similar to the one provided in this repo, it will probably be faster to:
+1. design a broad validation set with trustworthy atom-maps.
+2. screen the pretrained models to find the best head/layer/checkpoint given your validation set.
+3. depending on the performance, consider some finetuning using the best model so far. (not shown in this repo)
 
 ---
 
@@ -203,9 +231,7 @@ Outputs:
 
 ## Data
 
-The dataset used to pretrain `alberta-uspto-2800k` (USPTO, ~2.8M reactions) is archived on Zenodo: `<ZENODO_DOI>` *(to be filled in)*.
-
-> **Note:** the Zenodo link is a placeholder until the upload is complete.
+The dataset used to pretrain both original and updated model `alberta-uspto-2800k` (USPTO, ~2.8M reactions) is available at [IBM Box](https://ibm.box.com/v/RXNMapperData).
 
 ---
 
@@ -222,7 +248,22 @@ tests/            # test suite
 
 ## Citation
 
-If you use this work, please cite the original RXNMapper paper:
+If you use this work, please cite our work:
+
+```bibtex
+@article{doi:xx.xxxxx/chemrxiv.xxxxxx/vx,
+      title={RXNMapperv2: updated validation and evaluation on expanded chemical space}, 
+      author={Grandjean, Yves and Raffaud, Sacha, and Westerlund, Annie M. and Schwaller, Philippe and Genheden, Samuel and Reymond, Jean-Louis},
+      journal={ChemRxiv},
+      volume={},
+      number={},
+      pages={},
+      year={2026},
+      doi={}
+      URL={}, 
+}
+```
+and the original RXNMapper paper:
 
 ```bibtex
 @article{schwaller2021extraction,
