@@ -1,0 +1,12 @@
+checkpoints_folder_path: 'HF'  # 'HF'/'DEFAULT' downloads the default model from the Hub; otherwise a local '/path/to/checkpoints/folder' or a Hub repo id
+head: 3                        # attention head to use for atom-mapping
+layer: 10                      # layer of the attention head for atom-mapping
+model_name: 'model'            # naming model (e.g. 'albert_uspto_h3_l10')
+limit_checkpoints: null        # Optional[int]: number of checkpoints to try, starting from the latest ones (null = all)
+
+dataset_path: 'path/to/data.csv'
+rxn_col: 'rxn'                 # unmapped reactions column
+ref_col: 'mapped_rxn'          # ground-truth atom-mapped reactions column
+
+# vocab_path: ''               # optional override; defaults to vocab.txt at the checkpoints-folder root
+# batch_size: 32               # optional, defaults to 32
