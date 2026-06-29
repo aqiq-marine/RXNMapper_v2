@@ -248,16 +248,14 @@ tests/            # test suite
 If you use this work, please cite our work:
 
 ```bibtex
-@article{doi:xx.xxxxx/chemrxiv.xxxxxx/vx,
+@article{grandjeanRXNMapperv2UpdatedValidation2026
       title={RXNMapperv2: updated validation and evaluation on expanded chemical space}, 
       author={Grandjean, Yves and Raffaud, Sacha, and Westerlund, Annie M. and Schwaller, Philippe and Genheden, Samuel and Reymond, Jean-Louis},
-      journal={ChemRxiv},
-      volume={},
-      number={},
-      pages={},
+      journal={ChemRxiv}, 
       year={2026},
-      doi={}
-      URL={}, 
+      doi={10.26434/chemrxiv.15005247/v1}
+      URL={https://chemrxiv.org/doi/full/10.26434/chemrxiv.15005247/v1},
+      note= {Preprint}
 }
 ```
 and the original RXNMapper paper:
