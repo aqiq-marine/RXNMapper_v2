@@ -7,7 +7,7 @@ name = "rxnmapper-v2"
 version = "0.2.0"
 description = "Updated RXNMapper-based atom-mapping pipeline"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
   { name = "Yves Grandjean", email = "yves.grandjean@unibe.ch" },
@@ -15,7 +15,7 @@ authors = [
 ]
 
 dependencies = [
-  "numpy>=1.20,<1.24",
+  "numpy>=2.0",
   "pandas>=1.0.3",
   "scipy>=1.4.1",
   "scikit-learn",
@@ -23,7 +23,7 @@ dependencies = [
   "tqdm",
   "rapidfuzz",
   "datasets>=3.1.0",
-  "transformers==4.46.3",
+  "transformers>=4.57,<5",
   "tensorboardx",
   "accelerate>=0.26.0",
   "rdkit>=2024.3.5",
@@ -44,6 +44,9 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
@@ -62,7 +65,7 @@ dev = [
 ]
 
 torch = [
-  "torch>=2.4",
+  "torch>=2.6",
 ]
 
 # Optional RDKit install variants
